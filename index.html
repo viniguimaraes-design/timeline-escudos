@@ -93,6 +93,15 @@
   }
   .file-status.ok{color:#2E6B3E;}
   .file-status.err{color:#A32D2D;}
+  .edit-hint{
+    display:inline-block;
+    background:#E8E3D8;
+    padding:2px 10px;
+    border-radius:12px;
+    font-size:11px;
+    color:var(--muted);
+    margin-left:10px;
+  }
 </style>
 </head>
 <body>
@@ -114,24 +123,23 @@
         troca de desenho reinicia a espessura
       </div>
       <label class="upload-btn">
-        Carregar planilha (.xlsx)
-        <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" />
+        Carregar CSV
+        <input type="file" id="fileInput" accept=".csv" />
       </label>
     </div>
-    <div id="fileStatus" class="file-status"></div>
+    <div id="fileStatus" class="file-status">📝 Editável: <a href="escudos-dados.csv" target="_blank">escudos-dados.csv</a> <span class="edit-hint">✏️ clique no arquivo no GitHub para editar</span></div>
     <svg id="chart" viewBox="0 0 1000 545" xmlns="http://www.w3.org/2000/svg"></svg>
     <div class="note">
-      Os dados desta linha do tempo vêm da planilha <code>escudos-dados.xlsx</code>. Edite as linhas nela (uma linha por período de escudo), salve, e carregue o arquivo aqui pelo botão acima — o gráfico é recalculado automaticamente. Sem upload, a página mostra os dados de exemplo já embutidos.
+      Os dados estão no arquivo <code>escudos-dados.csv</code>. Para editar, <strong>clique no arquivo no GitHub</strong> e use o ícone de lápis (✏️). Depois de salvar, recarregue esta página.<br>
+      <strong>Estrutura:</strong> cada linha é um período de um desenho de escudo. Deixe "Fim" vazio se o desenho ainda está em uso hoje.
     </div>
   </div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <script>
 // ---------------------------------------------------------------
-// DADOS PADRÃO (usados até que uma planilha seja carregada).
-// Mesma estrutura de linhas da planilha escudos-dados.xlsx:
-// uma linha por período de escudo. "end" vazio = desenho atual.
+// DADOS PADRÃO (usados até que um CSV seja carregado).
 // ---------------------------------------------------------------
 const CURRENT_YEAR = 2026;
 
@@ -143,8 +151,7 @@ const DEFAULT_ROWS = [
   { clube: "São Paulo Futebol Clube", fundacao: 1930, hue: 355, sat: 70, id: "spfc-1930", label: "Escudo único (1930–atual)", start: 1930, end: null },
 ];
 
-// Agrupa as linhas (formato planilha) em clubes com seus períodos,
-// no formato que o renderizador espera.
+// Agrupa as linhas (formato planilha) em clubes com seus períodos
 function groupRowsIntoClubs(rows) {
   const byClub = new Map();
   rows.forEach(r => {
@@ -260,13 +267,13 @@ function render(clubs) {
     const cy = yCenter(i);
     const segments = buildSegments(club.periods);
 
-    // club label (left column, all names aligned to the same x)
+    // club label
     svg.appendChild(el("text", {
       x: NAME_X, y: cy + 7, "font-size": "20", "font-weight": "600", fill: "#241F1A",
       "font-family": "'Source Serif 4', Georgia, serif"
     }, club.name));
 
-    // pre-crest thin dotted line (founding -> first crest)
+    // founding line
     const firstStart = club.periods[0].start;
     if (firstStart > club.founded) {
       svg.appendChild(el("line", {
@@ -282,8 +289,6 @@ function render(clubs) {
         points: ribbonPolygonPoints(seg, cy),
         fill: color
       }));
-
-      // transition marker
       svg.appendChild(el("circle", { cx: xScale(seg.start), cy: cy, r: 3, fill: "#241F1A" }));
     });
   });
@@ -299,7 +304,7 @@ function render(clubs) {
 render(CLUBS);
 
 // ---------------------------------------------------------------
-// Upload de planilha (.xlsx / .xls / .csv)
+// Upload de CSV
 // ---------------------------------------------------------------
 const fileInput = document.getElementById("fileInput");
 const fileStatus = document.getElementById("fileStatus");
@@ -311,36 +316,67 @@ fileInput.addEventListener("change", (e) => {
   const reader = new FileReader();
   reader.onload = (evt) => {
     try {
-      const data = new Uint8Array(evt.target.result);
-      const workbook = XLSX.read(data, { type: "array" });
-      const sheetName = workbook.SheetNames.includes("Escudos") ? "Escudos" : workbook.SheetNames[0];
-      const sheet = workbook.Sheets[sheetName];
-      const json = XLSX.utils.sheet_to_json(sheet, { defval: null });
+      const csv = evt.target.result;
+      const result = Papa.parse(csv, { header: true, skipEmptyLines: true, trimHeaders: false });
+      
+      if (result.errors.length > 0) {
+        throw new Error("Erro ao ler CSV: " + result.errors[0].message);
+      }
 
-      const rows = json.map(r => ({
-        clube: r["Clube"],
-        fundacao: r["Fundação"],
-        hue: r["Matiz (0-360)"],
-        sat: r["Saturação (%)"],
-        id: r["ID do desenho"],
-        label: r["Rótulo do desenho"],
-        start: r["Início"],
-        end: r["Fim (vazio = atual)"]
+      const rows = result.data.map(r => ({
+        clube: r["Clube"]?.trim(),
+        fundacao: r["Fundação"]?.trim(),
+        hue: r["Matiz (0-360)"]?.trim(),
+        sat: r["Saturação (%)"]?.trim(),
+        id: r["ID do desenho"]?.trim(),
+        label: r["Rótulo do desenho"]?.trim(),
+        start: r["Início"]?.trim(),
+        end: r["Fim (vazio = atual)"]?.trim()
       })).filter(r => r.clube && r.start);
 
-      if (rows.length === 0) throw new Error("Nenhuma linha reconhecida nessa planilha.");
+      if (rows.length === 0) throw new Error("Nenhuma linha reconhecida no CSV.");
 
       CLUBS = groupRowsIntoClubs(rows);
       render(CLUBS);
-      fileStatus.textContent = `Planilha carregada: ${file.name} (${rows.length} períodos, ${CLUBS.length} clubes).`;
+      fileStatus.textContent = `✅ CSV carregado: ${file.name} (${rows.length} períodos, ${CLUBS.length} clubes)`;
       fileStatus.className = "file-status ok";
     } catch (err) {
-      fileStatus.textContent = "Não consegui ler essa planilha: " + err.message;
+      fileStatus.textContent = "❌ Erro ao ler CSV: " + err.message;
       fileStatus.className = "file-status err";
     }
   };
-  reader.readAsArrayBuffer(file);
+  reader.readAsText(file);
 });
+
+// Tenta carregar o CSV automaticamente se estiver no mesmo domínio
+fetch('escudos-dados.csv')
+  .then(res => {
+    if (!res.ok) throw new Error('Arquivo não encontrado');
+    return res.text();
+  })
+  .then(csv => {
+    const result = Papa.parse(csv, { header: true, skipEmptyLines: true, trimHeaders: false });
+    if (result.data && result.data.length > 0) {
+      const rows = result.data.map(r => ({
+        clube: r["Clube"]?.trim(),
+        fundacao: r["Fundação"]?.trim(),
+        hue: r["Matiz (0-360)"]?.trim(),
+        sat: r["Saturação (%)"]?.trim(),
+        id: r["ID do desenho"]?.trim(),
+        label: r["Rótulo do desenho"]?.trim(),
+        start: r["Início"]?.trim(),
+        end: r["Fim (vazio = atual)"]?.trim()
+      })).filter(r => r.clube && r.start);
+      
+      if (rows.length > 0) {
+        CLUBS = groupRowsIntoClubs(rows);
+        render(CLUBS);
+        fileStatus.textContent = `✅ Dados carregados automaticamente de escudos-dados.csv (${rows.length} períodos, ${CLUBS.length} clubes)`;
+        fileStatus.className = "file-status ok";
+      }
+    }
+  })
+  .catch(() => {});
 </script>
 </body>
 </html>
