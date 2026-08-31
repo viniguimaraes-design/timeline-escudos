@@ -67,7 +67,7 @@ let CLUBS = groupRowsIntoClubs(DEFAULT_ROWS);
 // Layout
 // ---------------------------------------------------------------
 const VIEW_W = 1000, VIEW_H = 545;
-const LABEL_COL_W = 320, RIGHT_PAD = 30, NAME_X = 2; // <- reduzido para 320 e NAME_X = 2 (quase colado)
+const LABEL_COL_W = 260, RIGHT_PAD = 30, NAME_X = 0; // <- reduzido para 260 e NAME_X = 0 (colado)
 const CHART_W = VIEW_W - LABEL_COL_W - RIGHT_PAD;
 const TOP_PAD = 50;
 const MIN_YEAR = 1890, MAX_YEAR = 2028;
@@ -125,24 +125,34 @@ function ribbonPolygonPoints(seg, cy) {
   return top.concat(bottom.reverse()).join(" ");
 }
 
-// Função para quebrar nome em até 2 linhas
-function splitName(name) {
-  if (name.includes(',')) {
-    const parts = name.split(',');
-    return [parts[0] + ',', parts.slice(1).join(',').trim()];
+// ---------------------------------------------------------------
+// Quebra de linha automática estilo editor de texto
+// ---------------------------------------------------------------
+function wrapText(text, maxWidth, fontSize, fontFamily) {
+  // Cria um elemento canvas para medir texto
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  ctx.font = `${fontSize}px "${fontFamily}"`;
+  
+  const words = text.split(' ');
+  const lines = [];
+  let currentLine = '';
+  
+  for (let i = 0; i < words.length; i++) {
+    const testLine = currentLine ? currentLine + ' ' + words[i] : words[i];
+    const metrics = ctx.measureText(testLine);
+    
+    if (metrics.width > maxWidth && currentLine) {
+      lines.push(currentLine);
+      currentLine = words[i];
+    } else {
+      currentLine = testLine;
+    }
   }
-  if (name.startsWith('Clube ')) {
-    return ['Clube', name.replace('Clube ', '')];
+  if (currentLine) {
+    lines.push(currentLine);
   }
-  if (name.startsWith('Club ')) {
-    return ['Club', name.replace('Club ', '')];
-  }
-  const words = name.split(' ');
-  if (words.length >= 4) {
-    const mid = Math.ceil(words.length / 2);
-    return [words.slice(0, mid).join(' '), words.slice(mid).join(' ')];
-  }
-  return [name, ''];
+  return lines;
 }
 
 // ---------------------------------------------------------------
@@ -181,27 +191,27 @@ function render(clubs) {
     stroke: "#241F1A", "stroke-width": 1, "stroke-dasharray": "3 4", opacity: 0.5
   }));
 
+  // Largura máxima para o texto (coluna de nomes)
+  const maxTextWidth = LABEL_COL_W - 8; // pequena margem
+
   clubs.forEach((club, i) => {
     const cy = yCenter(i);
     const segments = buildSegments(club.periods);
 
-    // club label em duas linhas - AMBAS com mesmo tamanho (16px) e mais próximas
-    const [line1, line2] = splitName(club.name);
-    const labelX = NAME_X; // agora é 2, praticamente colado na borda
-    
-    // Primeira linha
-    svg.appendChild(el("text", {
-      x: labelX, y: cy - 5, "font-size": "16", "font-weight": "600", fill: "#241F1A",
-      "font-family": "'Source Serif 4', Georgia, serif"
-    }, line1));
-    
-    // Segunda linha - MESMO tamanho (16px)
-    if (line2) {
+    // Quebra automática do nome
+    const lines = wrapText(club.name, maxTextWidth, 14, 'Source Serif 4');
+    const lineHeight = 18;
+    const totalTextHeight = lines.length * lineHeight;
+    const startY = cy - (totalTextHeight / 2) + 5;
+
+    // Desenha cada linha do nome
+    lines.forEach((line, idx) => {
       svg.appendChild(el("text", {
-        x: labelX, y: cy + 13, "font-size": "16", "font-weight": "600", fill: "#241F1A",
+        x: NAME_X + 4, y: startY + idx * lineHeight,
+        "font-size": "14", "font-weight": "600", fill: "#241F1A",
         "font-family": "'Source Serif 4', Georgia, serif"
-      }, line2));
-    }
+      }, line));
+    });
 
     // founding line
     const firstStart = club.periods[0].start;
