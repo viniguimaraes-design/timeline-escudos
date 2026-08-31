@@ -7,143 +7,29 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-  :root{
-    --paper:#F1ECE1;
-    --card:#FBF8F1;
-    --ink:#241F1A;
-    --muted:#7C7362;
-    --line:#D9D0BD;
-  }
-  *{box-sizing:border-box;}
+  *{box-sizing:border-box;margin:0;padding:0;}
   body{
-    margin:0;
-    background:var(--paper);
-    color:var(--ink);
-    font-family:'IBM Plex Sans', -apple-system, Segoe UI, sans-serif;
-    padding:40px 20px 60px;
-  }
-  .wrap{max-width:1040px;margin:0 auto;}
-  h1{
-    font-family:'Source Serif 4', Georgia, serif;
-    font-weight:600;
-    font-size:30px;
-    margin:0 0 8px;
-    letter-spacing:-0.01em;
-  }
-  .subtitle{
-    color:var(--muted);
-    font-size:15px;
-    line-height:1.55;
-    max-width:640px;
-    margin:0 0 28px;
-  }
-  .card{
-    background:var(--card);
-    border:1px solid var(--line);
-    border-radius:14px;
-    padding:28px 24px 20px;
-  }
-  .legend{
+    background:#F1ECE1;
     display:flex;
-    gap:28px;
-    flex-wrap:wrap;
-    margin-bottom:18px;
-    padding-bottom:18px;
-    border-bottom:1px solid var(--line);
-    font-size:13px;
-    color:var(--muted);
-  }
-  .legend-item{display:flex;align-items:center;gap:10px;}
-  .legend-item svg{flex-shrink:0;}
-  svg{display:block;width:100%;height:auto;}
-  .note{
-    margin-top:22px;
-    padding-top:16px;
-    border-top:1px solid var(--line);
-    font-size:12.5px;
-    color:var(--muted);
-    line-height:1.6;
-  }
-  .note code{
-    background:rgba(0,0,0,0.05);
-    padding:1px 5px;
-    border-radius:4px;
-    font-size:12px;
-  }
-  .upload-btn{
-    margin-left:auto;
-    display:inline-flex;
+    justify-content:center;
     align-items:center;
-    gap:6px;
-    background:var(--ink);
-    color:#fff;
-    font-size:13px;
-    font-weight:500;
-    padding:8px 14px;
-    border-radius:8px;
-    cursor:pointer;
+    min-height:100vh;
+    padding:20px;
   }
-  .upload-btn:hover{opacity:0.9;}
-  .upload-btn input{display:none;}
-  .file-status{
-    font-size:12.5px;
-    color:var(--muted);
-    margin:-6px 0 14px;
-    min-height:16px;
-  }
-  .file-status.ok{color:#2E6B3E;}
-  .file-status.err{color:#A32D2D;}
-  .edit-hint{
-    display:inline-block;
-    background:#E8E3D8;
-    padding:2px 10px;
-    border-radius:12px;
-    font-size:11px;
-    color:var(--muted);
-    margin-left:10px;
-  }
+  svg{display:block;width:100%;height:auto;max-width:1040px;}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <h1>Evolução dos escudos</h1>
-  <p class="subtitle">Cada linha representa um clube. Ela fica mais espessa quanto mais tempo o desenho atual do escudo está em uso; ao trocar de desenho, a linha volta a ficar fina. Se um desenho antigo voltar a ser usado, a linha retoma a espessura que tinha quando ele foi abandonado.</p>
-
-  <div class="card">
-    <div class="legend">
-      <div class="legend-item">
-        <svg width="90" height="16" viewBox="0 0 90 16"><path d="M2 8 L88 8" stroke="#7A1B2E" stroke-width="10" stroke-linecap="round" fill="none" opacity="1"/></svg>
-        quanto mais espessa, mais tempo o desenho está em uso
-      </div>
-      <div class="legend-item">
-        <svg width="90" height="16" viewBox="0 0 90 16">
-          <path d="M2 8 L40 8" stroke="#7A1B2E" stroke-width="10" stroke-linecap="round" fill="none"/>
-          <path d="M46 8 L88 8" stroke="#B08A65" stroke-width="3" stroke-linecap="round" fill="none"/>
-        </svg>
-        troca de desenho reinicia a espessura
-      </div>
-      <label class="upload-btn">
-        Carregar CSV
-        <input type="file" id="fileInput" accept=".csv" />
-      </label>
-    </div>
-    <div id="fileStatus" class="file-status">📝 Editável: <a href="escudos-dados.csv" target="_blank">escudos-dados.csv</a> <span class="edit-hint">✏️ clique no arquivo no GitHub para editar</span></div>
-    <svg id="chart" viewBox="0 0 1000 545" xmlns="http://www.w3.org/2000/svg"></svg>
-    <div class="note">
-      Os dados estão no arquivo <code>escudos-dados.csv</code>. Para editar, <strong>clique no arquivo no GitHub</strong> e use o ícone de lápis (✏️). Depois de salvar, recarregue esta página.<br>
-      <strong>Estrutura:</strong> cada linha é um período de um desenho de escudo. Deixe "Fim" vazio se o desenho ainda está em uso hoje.
-    </div>
-  </div>
-</div>
+<svg id="chart" viewBox="0 0 1000 545" xmlns="http://www.w3.org/2000/svg"></svg>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <script>
 // ---------------------------------------------------------------
-// DADOS PADRÃO (usados até que um CSV seja carregado).
+// DADOS DOS CLUBES
 // ---------------------------------------------------------------
 const CURRENT_YEAR = 2026;
 
-const DEFAULT_ROWS = [
+const ROWS = [
   { clube: "Club de Regatas Vasco da Gama", fundacao: 1898, hue: 345, sat: 55, id: "vasco-1899", label: "1º escudo (1899)", start: 1899, end: 1920 },
   { clube: "Club de Regatas Vasco da Gama", fundacao: 1898, hue: 345, sat: 55, id: "vasco-1920", label: "2º escudo (1920–atual)", start: 1920, end: null },
   { clube: "Clube Atlético Mineiro", fundacao: 1908, hue: 0, sat: 0, id: "cam-1910", label: "1º escudo (1910)", start: 1910, end: 1920 },
@@ -151,7 +37,6 @@ const DEFAULT_ROWS = [
   { clube: "São Paulo Futebol Clube", fundacao: 1930, hue: 355, sat: 70, id: "spfc-1930", label: "Escudo único (1930–atual)", start: 1930, end: null },
 ];
 
-// Agrupa as linhas (formato planilha) em clubes com seus períodos
 function groupRowsIntoClubs(rows) {
   const byClub = new Map();
   rows.forEach(r => {
@@ -176,7 +61,7 @@ function groupRowsIntoClubs(rows) {
   return Array.from(byClub.values());
 }
 
-let CLUBS = groupRowsIntoClubs(DEFAULT_ROWS);
+const CLUBS = groupRowsIntoClubs(ROWS);
 
 // ---------------------------------------------------------------
 // Layout
@@ -302,81 +187,6 @@ function render(clubs) {
 }
 
 render(CLUBS);
-
-// ---------------------------------------------------------------
-// Upload de CSV
-// ---------------------------------------------------------------
-const fileInput = document.getElementById("fileInput");
-const fileStatus = document.getElementById("fileStatus");
-
-fileInput.addEventListener("change", (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
-
-  const reader = new FileReader();
-  reader.onload = (evt) => {
-    try {
-      const csv = evt.target.result;
-      const result = Papa.parse(csv, { header: true, skipEmptyLines: true, trimHeaders: false });
-      
-      if (result.errors.length > 0) {
-        throw new Error("Erro ao ler CSV: " + result.errors[0].message);
-      }
-
-      const rows = result.data.map(r => ({
-        clube: r["Clube"]?.trim(),
-        fundacao: r["Fundação"]?.trim(),
-        hue: r["Matiz (0-360)"]?.trim(),
-        sat: r["Saturação (%)"]?.trim(),
-        id: r["ID do desenho"]?.trim(),
-        label: r["Rótulo do desenho"]?.trim(),
-        start: r["Início"]?.trim(),
-        end: r["Fim (vazio = atual)"]?.trim()
-      })).filter(r => r.clube && r.start);
-
-      if (rows.length === 0) throw new Error("Nenhuma linha reconhecida no CSV.");
-
-      CLUBS = groupRowsIntoClubs(rows);
-      render(CLUBS);
-      fileStatus.textContent = `✅ CSV carregado: ${file.name} (${rows.length} períodos, ${CLUBS.length} clubes)`;
-      fileStatus.className = "file-status ok";
-    } catch (err) {
-      fileStatus.textContent = "❌ Erro ao ler CSV: " + err.message;
-      fileStatus.className = "file-status err";
-    }
-  };
-  reader.readAsText(file);
-});
-
-// Tenta carregar o CSV automaticamente se estiver no mesmo domínio
-fetch('escudos-dados.csv')
-  .then(res => {
-    if (!res.ok) throw new Error('Arquivo não encontrado');
-    return res.text();
-  })
-  .then(csv => {
-    const result = Papa.parse(csv, { header: true, skipEmptyLines: true, trimHeaders: false });
-    if (result.data && result.data.length > 0) {
-      const rows = result.data.map(r => ({
-        clube: r["Clube"]?.trim(),
-        fundacao: r["Fundação"]?.trim(),
-        hue: r["Matiz (0-360)"]?.trim(),
-        sat: r["Saturação (%)"]?.trim(),
-        id: r["ID do desenho"]?.trim(),
-        label: r["Rótulo do desenho"]?.trim(),
-        start: r["Início"]?.trim(),
-        end: r["Fim (vazio = atual)"]?.trim()
-      })).filter(r => r.clube && r.start);
-      
-      if (rows.length > 0) {
-        CLUBS = groupRowsIntoClubs(rows);
-        render(CLUBS);
-        fileStatus.textContent = `✅ Dados carregados automaticamente de escudos-dados.csv (${rows.length} períodos, ${CLUBS.length} clubes)`;
-        fileStatus.className = "file-status ok";
-      }
-    }
-  })
-  .catch(() => {});
 </script>
 </body>
 </html>
