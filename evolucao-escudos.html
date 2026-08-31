@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Evolução dos escudos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F1ECE1;
+    --card:#FBF8F1;
+    --ink:#241F1A;
+    --muted:#7C7362;
+    --line:#D9D0BD;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'IBM Plex Sans', -apple-system, Segoe UI, sans-serif;
+    padding:40px 20px 60px;
+  }
+  .wrap{max-width:1040px;margin:0 auto;}
+  h1{
+    font-family:'Source Serif 4', Georgia, serif;
+    font-weight:600;
+    font-size:30px;
+    margin:0 0 8px;
+    letter-spacing:-0.01em;
+  }
+  .subtitle{
+    color:var(--muted);
+    font-size:15px;
+    line-height:1.55;
+    max-width:640px;
+    margin:0 0 28px;
+  }
+  .card{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:28px 24px 20px;
+  }
+  .legend{
+    display:flex;
+    gap:28px;
+    flex-wrap:wrap;
+    margin-bottom:18px;
+    padding-bottom:18px;
+    border-bottom:1px solid var(--line);
+    font-size:13px;
+    color:var(--muted);
+  }
+  .legend-item{display:flex;align-items:center;gap:10px;}
+  .legend-item svg{flex-shrink:0;}
+  svg{display:block;width:100%;height:auto;}
+  .note{
+    margin-top:22px;
+    padding-top:16px;
+    border-top:1px solid var(--line);
+    font-size:12.5px;
+    color:var(--muted);
+    line-height:1.6;
+  }
+  .note code{
+    background:rgba(0,0,0,0.05);
+    padding:1px 5px;
+    border-radius:4px;
+    font-size:12px;
+  }
+  .upload-btn{
+    margin-left:auto;
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    background:var(--ink);
+    color:#fff;
+    font-size:13px;
+    font-weight:500;
+    padding:8px 14px;
+    border-radius:8px;
+    cursor:pointer;
+  }
+  .upload-btn:hover{opacity:0.9;}
+  .upload-btn input{display:none;}
+  .file-status{
+    font-size:12.5px;
+    color:var(--muted);
+    margin:-6px 0 14px;
+    min-height:16px;
+  }
+  .file-status.ok{color:#2E6B3E;}
+  .file-status.err{color:#A32D2D;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Evolução dos escudos</h1>
+  <p class="subtitle">Cada linha representa um clube. Ela fica mais espessa quanto mais tempo o desenho atual do escudo está em uso; ao trocar de desenho, a linha volta a ficar fina. Se um desenho antigo voltar a ser usado, a linha retoma a espessura que tinha quando ele foi abandonado.</p>
+
+  <div class="card">
+    <div class="legend">
+      <div class="legend-item">
+        <svg width="90" height="16" viewBox="0 0 90 16"><path d="M2 8 L88 8" stroke="#7A1B2E" stroke-width="10" stroke-linecap="round" fill="none" opacity="1"/></svg>
+        quanto mais espessa, mais tempo o desenho está em uso
+      </div>
+      <div class="legend-item">
+        <svg width="90" height="16" viewBox="0 0 90 16">
+          <path d="M2 8 L40 8" stroke="#7A1B2E" stroke-width="10" stroke-linecap="round" fill="none"/>
+          <path d="M46 8 L88 8" stroke="#B08A65" stroke-width="3" stroke-linecap="round" fill="none"/>
+        </svg>
+        troca de desenho reinicia a espessura
+      </div>
+      <label class="upload-btn">
+        Carregar planilha (.xlsx)
+        <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" />
+      </label>
+    </div>
+    <div id="fileStatus" class="file-status"></div>
+    <svg id="chart" viewBox="0 0 1000 545" xmlns="http://www.w3.org/2000/svg"></svg>
+    <div class="note">
+      Os dados desta linha do tempo vêm da planilha <code>escudos-dados.xlsx</code>. Edite as linhas nela (uma linha por período de escudo), salve, e carregue o arquivo aqui pelo botão acima — o gráfico é recalculado automaticamente. Sem upload, a página mostra os dados de exemplo já embutidos.
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+// ---------------------------------------------------------------
+// DADOS PADRÃO (usados até que uma planilha seja carregada).
+// Mesma estrutura de linhas da planilha escudos-dados.xlsx:
+// uma linha por período de escudo. "end" vazio = desenho atual.
+// ---------------------------------------------------------------
+const CURRENT_YEAR = 2026;
+
+const DEFAULT_ROWS = [
+  { clube: "Club de Regatas Vasco da Gama", fundacao: 1898, hue: 345, sat: 55, id: "vasco-1899", label: "1º escudo (1899)", start: 1899, end: 1920 },
+  { clube: "Club de Regatas Vasco da Gama", fundacao: 1898, hue: 345, sat: 55, id: "vasco-1920", label: "2º escudo (1920–atual)", start: 1920, end: null },
+  { clube: "Clube Atlético Mineiro", fundacao: 1908, hue: 0, sat: 0, id: "cam-1910", label: "1º escudo (1910)", start: 1910, end: 1920 },
+  { clube: "Clube Atlético Mineiro", fundacao: 1908, hue: 0, sat: 0, id: "cam-1920", label: "2º escudo (1920–atual)", start: 1920, end: null },
+  { clube: "São Paulo Futebol Clube", fundacao: 1930, hue: 355, sat: 70, id: "spfc-1930", label: "Escudo único (1930–atual)", start: 1930, end: null },
+];
+
+// Agrupa as linhas (formato planilha) em clubes com seus períodos,
+// no formato que o renderizador espera.
+function groupRowsIntoClubs(rows) {
+  const byClub = new Map();
+  rows.forEach(r => {
+    if (!r.clube || !r.start) return;
+    if (!byClub.has(r.clube)) {
+      byClub.set(r.clube, {
+        name: r.clube,
+        founded: Number(r.fundacao),
+        hue: Number(r.hue) || 0,
+        sat: Number(r.sat) || 0,
+        periods: []
+      });
+    }
+    byClub.get(r.clube).periods.push({
+      id: r.id,
+      label: r.label,
+      start: Number(r.start),
+      end: (r.end === null || r.end === undefined || r.end === "") ? null : Number(r.end)
+    });
+  });
+  byClub.forEach(club => club.periods.sort((a, b) => a.start - b.start));
+  return Array.from(byClub.values());
+}
+
+let CLUBS = groupRowsIntoClubs(DEFAULT_ROWS);
+
+// ---------------------------------------------------------------
+// Layout
+// ---------------------------------------------------------------
+const VIEW_W = 1000, VIEW_H = 545;
+const LABEL_COL_W = 430, RIGHT_PAD = 30, NAME_X = 24;
+const CHART_W = VIEW_W - LABEL_COL_W - RIGHT_PAD;
+const TOP_PAD = 50, ROW_H = 80, ROW_GAP = 34;
+const MIN_YEAR = 1890, MAX_YEAR = 2028;
+const MIN_W = 1.5, MAX_W = 60, GROWTH = 0.5;
+
+function xScale(year) {
+  return LABEL_COL_W + ((year - MIN_YEAR) / (MAX_YEAR - MIN_YEAR)) * CHART_W;
+}
+function yCenter(i) {
+  return TOP_PAD + i * (ROW_H + ROW_GAP) + ROW_H / 2;
+}
+function widthFor(years) {
+  return Math.min(MAX_W, Math.max(MIN_W, MIN_W + GROWTH * years));
+}
+function periodColor(hue, sat, idx, total) {
+  const lightness = total === 1 ? 30 : 30 + (total - 1 - idx) * 18;
+  const l = Math.min(70, Math.max(24, lightness));
+  return sat === 0 ? `hsl(0,0%,${l}%)` : `hsl(${hue},${sat}%,${l}%)`;
+}
+
+function buildSegments(periods) {
+  const priorAccum = {};
+  return periods.map((p, idx) => {
+    const end = p.end === null ? CURRENT_YEAR : p.end;
+    const startAccum = priorAccum[p.id] || 0;
+    priorAccum[p.id] = startAccum + (end - p.start);
+    return { ...p, end, startAccum, idx };
+  });
+}
+
+function ribbonPolygonPoints(seg, cy) {
+  const steps = Math.max(2, Math.ceil((seg.end - seg.start)));
+  const top = [], bottom = [];
+  for (let i = 0; i <= steps; i++) {
+    const t = seg.start + (seg.end - seg.start) * (i / steps);
+    const yearsActive = seg.startAccum + (t - seg.start);
+    const w = widthFor(yearsActive) / 2;
+    const x = xScale(t);
+    top.push(`${x},${cy - w}`);
+    bottom.push(`${x},${cy + w}`);
+  }
+  return top.concat(bottom.reverse()).join(" ");
+}
+
+// ---------------------------------------------------------------
+// Render
+// ---------------------------------------------------------------
+const svg = document.getElementById("chart");
+const NS = "http://www.w3.org/2000/svg";
+function el(tag, attrs, text) {
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (text !== undefined) e.textContent = text;
+  return e;
+}
+
+function render(clubs) {
+  svg.innerHTML = "";
+  const h = TOP_PAD + clubs.length * (ROW_H + ROW_GAP) - ROW_GAP + 55;
+  svg.setAttribute("viewBox", `0 0 ${VIEW_W} ${h}`);
+
+  // decade gridlines
+  for (let y = 1890; y <= 2020; y += 10) {
+    const x = xScale(y);
+    svg.appendChild(el("line", {
+      x1: x, y1: TOP_PAD - 15, x2: x, y2: TOP_PAD + clubs.length * (ROW_H + ROW_GAP) - ROW_GAP + 10,
+      stroke: "#D9D0BD", "stroke-width": 1
+    }));
+    svg.appendChild(el("text", {
+      x: x, y: TOP_PAD - 22, "text-anchor": "middle", fill: "#7C7362", "font-size": "11"
+    }, y));
+  }
+
+  // "hoje" marker
+  const xNow = xScale(CURRENT_YEAR);
+  svg.appendChild(el("line", {
+    x1: xNow, y1: TOP_PAD - 15, x2: xNow, y2: TOP_PAD + clubs.length * (ROW_H + ROW_GAP) - ROW_GAP + 10,
+    stroke: "#241F1A", "stroke-width": 1, "stroke-dasharray": "3 4", opacity: 0.5
+  }));
+
+  clubs.forEach((club, i) => {
+    const cy = yCenter(i);
+    const segments = buildSegments(club.periods);
+
+    // club label (left column, all names aligned to the same x)
+    svg.appendChild(el("text", {
+      x: NAME_X, y: cy + 7, "font-size": "20", "font-weight": "600", fill: "#241F1A",
+      "font-family": "'Source Serif 4', Georgia, serif"
+    }, club.name));
+
+    // pre-crest thin dotted line (founding -> first crest)
+    const firstStart = club.periods[0].start;
+    if (firstStart > club.founded) {
+      svg.appendChild(el("line", {
+        x1: xScale(club.founded), y1: cy, x2: xScale(firstStart), y2: cy,
+        stroke: "#B0A793", "stroke-width": 3, "stroke-dasharray": "1 5", "stroke-linecap": "round"
+      }));
+    }
+
+    // period ribbons
+    segments.forEach(seg => {
+      const color = periodColor(club.hue, club.sat, seg.idx, segments.length);
+      svg.appendChild(el("polygon", {
+        points: ribbonPolygonPoints(seg, cy),
+        fill: color
+      }));
+
+      // transition marker
+      svg.appendChild(el("circle", { cx: xScale(seg.start), cy: cy, r: 3, fill: "#241F1A" }));
+    });
+  });
+
+  // x-axis baseline
+  const axisY = TOP_PAD + clubs.length * (ROW_H + ROW_GAP) - ROW_GAP + 35;
+  svg.appendChild(el("line", {
+    x1: LABEL_COL_W, y1: axisY, x2: VIEW_W - RIGHT_PAD, y2: axisY,
+    stroke: "#D9D0BD", "stroke-width": 1
+  }));
+}
+
+render(CLUBS);
+
+// ---------------------------------------------------------------
+// Upload de planilha (.xlsx / .xls / .csv)
+// ---------------------------------------------------------------
+const fileInput = document.getElementById("fileInput");
+const fileStatus = document.getElementById("fileStatus");
+
+fileInput.addEventListener("change", (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = (evt) => {
+    try {
+      const data = new Uint8Array(evt.target.result);
+      const workbook = XLSX.read(data, { type: "array" });
+      const sheetName = workbook.SheetNames.includes("Escudos") ? "Escudos" : workbook.SheetNames[0];
+      const sheet = workbook.Sheets[sheetName];
+      const json = XLSX.utils.sheet_to_json(sheet, { defval: null });
+
+      const rows = json.map(r => ({
+        clube: r["Clube"],
+        fundacao: r["Fundação"],
+        hue: r["Matiz (0-360)"],
+        sat: r["Saturação (%)"],
+        id: r["ID do desenho"],
+        label: r["Rótulo do desenho"],
+        start: r["Início"],
+        end: r["Fim (vazio = atual)"]
+      })).filter(r => r.clube && r.start);
+
+      if (rows.length === 0) throw new Error("Nenhuma linha reconhecida nessa planilha.");
+
+      CLUBS = groupRowsIntoClubs(rows);
+      render(CLUBS);
+      fileStatus.textContent = `Planilha carregada: ${file.name} (${rows.length} períodos, ${CLUBS.length} clubes).`;
+      fileStatus.className = "file-status ok";
+    } catch (err) {
+      fileStatus.textContent = "Não consegui ler essa planilha: " + err.message;
+      fileStatus.className = "file-status err";
+    }
+  };
+  reader.readAsArrayBuffer(file);
+});
+</script>
+</body>
+</html>
