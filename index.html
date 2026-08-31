@@ -25,11 +25,11 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <script>
 // ---------------------------------------------------------------
-// DADOS DOS CLUBES
+// DADOS PADRÃO (usados se o CSV não carregar)
 // ---------------------------------------------------------------
 const CURRENT_YEAR = 2026;
 
-const ROWS = [
+const DEFAULT_ROWS = [
   { clube: "Club de Regatas Vasco da Gama", fundacao: 1898, hue: 345, sat: 55, id: "vasco-1899", label: "1º escudo (1899)", start: 1899, end: 1920 },
   { clube: "Club de Regatas Vasco da Gama", fundacao: 1898, hue: 345, sat: 55, id: "vasco-1920", label: "2º escudo (1920–atual)", start: 1920, end: null },
   { clube: "Clube Atlético Mineiro", fundacao: 1908, hue: 0, sat: 0, id: "cam-1910", label: "1º escudo (1910)", start: 1910, end: 1920 },
@@ -61,7 +61,7 @@ function groupRowsIntoClubs(rows) {
   return Array.from(byClub.values());
 }
 
-const CLUBS = groupRowsIntoClubs(ROWS);
+let CLUBS = groupRowsIntoClubs(DEFAULT_ROWS);
 
 // ---------------------------------------------------------------
 // Layout
@@ -186,7 +186,39 @@ function render(clubs) {
   }));
 }
 
-render(CLUBS);
+// ---------------------------------------------------------------
+// Tenta carregar o CSV automaticamente
+// ---------------------------------------------------------------
+fetch('escudos-dados.csv')
+  .then(res => {
+    if (!res.ok) throw new Error('Arquivo não encontrado');
+    return res.text();
+  })
+  .then(csv => {
+    const result = Papa.parse(csv, { header: true, skipEmptyLines: true, trimHeaders: false });
+    if (result.data && result.data.length > 0) {
+      const rows = result.data.map(r => ({
+        clube: r["Clube"]?.trim(),
+        fundacao: r["Fundação"]?.trim(),
+        hue: r["Matiz (0-360)"]?.trim(),
+        sat: r["Saturação (%)"]?.trim(),
+        id: r["ID do desenho"]?.trim(),
+        label: r["Rótulo do desenho"]?.trim(),
+        start: r["Início"]?.trim(),
+        end: r["Fim (vazio = atual)"]?.trim()
+      })).filter(r => r.clube && r.start);
+      
+      if (rows.length > 0) {
+        CLUBS = groupRowsIntoClubs(rows);
+        render(CLUBS);
+        console.log('✅ Dados carregados do CSV');
+      }
+    }
+  })
+  .catch(() => {
+    console.log('📄 Usando dados padrão');
+    render(CLUBS);
+  });
 </script>
 </body>
 </html>
