@@ -1,0 +1,66 @@
+Clube,País,Fundação,Matiz (0-360),Saturação (%),ID do desenho,Rótulo do desenho,Início,Fim (vazio = atual)
+ATLÉTICO MINEIRO,Brasil,1908,0,0,cam-1910,1º escudo (1910),1910,1920
+ATLÉTICO MINEIRO,Brasil,1908,0,0,cam-1920,2º escudo (1920),1920,
+BOTAFOGO,Brasil,1904,0,0,botafogo-1904,1º escudo (1904),1904,1942
+BOTAFOGO,Brasil,1904,0,0,botafogo-1942,2º escudo (1942),1942,
+CORINTHIANS,Brasil,1910,0,0,corinthians-1913,1º escudo (1913),1913,1916
+CORINTHIANS,Brasil,1910,0,0,corinthians-1916,2º escudo (1916),1916,1919
+CORINTHIANS,Brasil,1910,0,0,corinthians-1919,3º escudo (1919),1919,1939
+CORINTHIANS,Brasil,1910,0,0,corinthians-1939,4º escudo (1939),1939,
+CRUZEIRO,Brasil,1921,0,0,cruzeiro-1921,1º escudo (1921),1921,1942
+CRUZEIRO,Brasil,1921,0,0,cruzeiro-1942,2º escudo (1942),1942,
+FLAMENGO,Brasil,1895,0,0,fla-1895,1º escudo (1895),1895,1920
+FLAMENGO,Brasil,1895,0,0,fla-1920,2º escudo (1920),1920,
+FLUMINENSE,Brasil,1902,0,0,flu-1902,1º escudo (1902),1902,1905
+FLUMINENSE,Brasil,1902,0,0,flu-1905,2º escudo (1905),1905,
+GRÊMIO,Brasil,1903,0,0,gremio-1903,1º escudo (1903),1903,1920
+GRÊMIO,Brasil,1903,0,0,gremio-1920,2º escudo (1920),1920,
+INTERNACIONAL,Brasil,1909,0,0,inter-1909,1º escudo (1999),1909,
+PALMEIRAS,Brasil,1914,0,0,palmeiras-1914,1º escudo (1914),1914,1942
+PALMEIRAS,Brasil,1914,0,0,palmeiras-1942,2º escudo (1942),1942,
+SANTOS,Brasil,1912,0,0,santos-1912,1º escudo (1912),1912,1913
+SANTOS,Brasil,1912,0,0,santos-1913,2º escudo (1913),1913,1925
+SANTOS,Brasil,1912,0,0,santos-1925,3º escudo (1925),1925,1942
+SANTOS,Brasil,1912,0,0,santos-1942,4º escudo (1942),1942,1944
+SANTOS,Brasil,1912,0,0,santos-1925,3º escudo (1944),1944,
+SÃO PAULO,Brasil,1930,0,0,spfc-1930,1º escudo (1930),1930,
+VASCO DA GAMA,Brasil,1898,0,0,vasco-1899,1º escudo (1899),1899,1920
+VASCO DA GAMA,Brasil,1898,0,0,vasco-1920,2º escudo (1920),1920,
+ARGENTINO JUNIORS,Argentina,1904,0,0,arg-1904,1º escudo (1904),1904,1931
+ARGENTINO JUNIORS,Argentina,1904,0,0,arg-1931,2º escudo (1931),1931,1953
+ARGENTINO JUNIORS,Argentina,1904,0,0,arg-1904,1º escudo (1953),1953,1976
+ARGENTINO JUNIORS,Argentina,1904,0,0,arg-1931,2º escudo (1976),1976,
+BOCA JUNIORS,Argentina,1905,0,0,boca-1910,1º escudo (1910),1910,1915
+BOCA JUNIORS,Argentina,1905,0,0,boca-1915,2º escudo (1915),1915,
+ESTUDIANTES,Argentina,1905,0,0,estudiantes-1905,1º escudo (1905),1905,1930
+ESTUDIANTES,Argentina,1905,0,0,estudiantes-1930,2º escudo (1930),1930,1960
+ESTUDIANTES,Argentina,1905,0,0,estudiantes-1960,3º escudo (1960),1960,1990
+ESTUDIANTES,Argentina,1905,0,0,estudiantes-1930,2º escudo (1990),1990,
+INDEPENDIENTE,Argentina,1904,0,0,cai-1905,1º escudo (1905),1905,1912
+INDEPENDIENTE,Argentina,1904,0,0,cai-1912,2º escudo (1912),1912,1920
+INDEPENDIENTE,Argentina,1904,0,0,cai-1920,3º escudo (1920),1920,1930
+INDEPENDIENTE,Argentina,1904,0,0,cai-1930,4º escudo (1930),1930,
+NEWELL'S OLD BOYS,Argentina,1884,0,0,newells-1903,1º escudo (1903),1903,1926
+NEWELL'S OLD BOYS,Argentina,1884,0,0,newells-1926,2º escudo (1926),1926,1942
+NEWELL'S OLD BOYS,Argentina,1884,0,0,newells-1942,3º escudo (1942),1942,1945
+NEWELL'S OLD BOYS,Argentina,1884,0,0,newells-1926,2º escudo (1945),1945,1952
+NEWELL'S OLD BOYS,Argentina,1884,0,0,newells-1942,3º escudo (1952),1952,
+RACING,Argentina,1903,0,0,racing-1903,1º escudo (1903),1903,1918
+RACING,Argentina,1903,0,0,racing-1918,2º escudo (1918),1918,1929
+RACING,Argentina,1903,0,0,racing-1929,3º escudo (1929),1929,1936
+RACING,Argentina,1903,0,0,racing-1936,4º escudo (1936),1936,
+RIVER PLATE,Argentina,1901,0,0,river-1914,1º escudo (1914),1914,1928
+RIVER PLATE,Argentina,1901,0,0,river-1928,2º escudo (1928),1928,1932
+RIVER PLATE,Argentina,1901,0,0,river-1932,3º escudo (1932),1932,
+ROSARIO CENTRAL,Argentina,1903,0,0,rosario-1913,1º escudo (1913),1913,1976
+ROSARIO CENTRAL,Argentina,1903,0,0,rosario-1976,2º escudo (1976),1976,
+SAN LORENZO,Argentina,1908,0,0,sla-1908,1º escudo (1908),1908,
+VELEZ SARSFIELD,Argentina,1910,0,0,velez-1914,1º escudo (1914),1914,1917
+VELEZ SARSFIELD,Argentina,1910,0,0,velez-1917,2º escudo (1917),1917,1926
+VELEZ SARSFIELD,Argentina,1910,0,0,velez-1926,3º escudo (1926),1926,1927
+VELEZ SARSFIELD,Argentina,1910,0,0,velez-1917,2º escudo (1927),1927,1933
+VELEZ SARSFIELD,Argentina,1910,0,0,velez-1933,4º escudo (1933),1933,1934
+VELEZ SARSFIELD,Argentina,1910,0,0,velez-1914,1º escudo (1934),1934,1941
+VELEZ SARSFIELD,Argentina,1910,0,0,velez-1917,2º escudo (1941),1941,1943
+VELEZ SARSFIELD,Argentina,1910,0,0,velez-1933,4º escudo (1943),1943,1960
+VELEZ SARSFIELD,Argentina,1910,0,0,velez-1960,5º escudo (1960),1960,
