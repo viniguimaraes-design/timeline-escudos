@@ -27,7 +27,7 @@
     flex-direction:column;
     justify-content:space-between;
     width:100%;
-    padding:40px; /* BORDAS DA TELA AMPLIADAS */
+    padding:24px 32px 16px 32px;
   }
   
   .chart-area{
@@ -37,14 +37,15 @@
     align-items:center;
     width:100%;
     min-height:0;
-    overflow-y:auto;
+    overflow:hidden; /* REMOVE A BARRA DE SCROLL */
   }
 
   .charts-row{
     display:flex;
-    gap:80px; /* ESPAÇO ENTRE OS GRÁFICOS AMPLIADO */
+    gap:60px;
     width:100%;
-    max-width:1400px;
+    max-width:1300px;
+    height:100%;
     align-items:center;
     justify-content:center;
   }
@@ -56,16 +57,18 @@
     flex-direction:column;
     align-items:flex-start;
     justify-content:center;
+    height:100%;
+    max-height:100%;
   }
 
   .chart-title{
     font-family:'Archivo Narrow', sans-serif !important;
     font-weight:700 !important;
-    font-size:28px;
+    font-size:24px;
     color:var(--ink);
     width:100%;
     text-align:left;
-    margin-bottom:16px;
+    margin-bottom:8px;
     flex-shrink:0;
   }
 
@@ -73,11 +76,11 @@
     display:block;
     width:100%;
     height:auto;
-    max-height:calc(100% - 40px);
+    max-height:calc(100% - 35px); /* GAVETA SEGURA PARA NÃO CORTAR O TÍTULO */
   }
 
   .charts-row[data-count="1"] .chart-column{
-    max-width:650px;
+    max-width:580px;
   }
 
   .legend-panel{
@@ -85,8 +88,8 @@
     display:flex;
     justify-content:center;
     gap:48px;
-    padding-top:20px;
-    padding-bottom:8px;
+    padding-top:14px;
+    padding-bottom:4px;
     border-top:1px solid rgba(152, 145, 129, 0.2);
     font-family:'Archivo Narrow', sans-serif;
     font-weight:400;
@@ -95,7 +98,7 @@
     z-index:10;
   }
 
-  .legend-group{display:flex;flex-direction:column;gap:8px;}
+  .legend-group{display:flex;flex-direction:column;gap:6px;}
   .legend-group-title{
     font-family:'Archivo Narrow', sans-serif;
     font-size:12px;
@@ -225,15 +228,17 @@ let showNames = true;
 let showPeriods = true;
 let selectedCountries = new Set(["Argentina", "Brasil", "Inglaterra"]);
 
-const VIEW_W = 1000, VIEW_H = 545;
-const RIGHT_PAD = 40; /* RESPIRO NA DIREITA DO SVG */
+const VIEW_W = 1000;
+const RIGHT_PAD = 30;
 
-const EXPANDED_LABEL_COL_W = 210, COLLAPSED_LABEL_COL_W = 20; /* MARGEM EXPANDIDA PARA ACOMODAR A FONTE DE 18PX */
+const EXPANDED_LABEL_COL_W = 210, COLLAPSED_LABEL_COL_W = 20;
 let LABEL_COL_W = EXPANDED_LABEL_COL_W;
 let NAME_OPACITY = 1;
-const TOP_PAD = 50;
+const TOP_PAD = 40;
 const MIN_YEAR = 1890, MAX_YEAR = 2028;
-const MIN_W = 1.5, MAX_W = 60, GROWTH = 0.5;
+
+/* REDUÇÃO NA ESPESSURA E NA ALTURA DAS LINHAS */
+const MIN_W = 1.5, MAX_W = 38, GROWTH = 0.3;
 
 function xScale(year) {
   const chartW = VIEW_W - LABEL_COL_W - RIGHT_PAD;
@@ -298,14 +303,14 @@ function el(tag, attrs, text) {
 
 function render(svg, clubs) {
   svg.innerHTML = "";
-  const totalHeight = TOP_PAD + clubs.length * ROW_SPACING + 55;
+  const totalHeight = TOP_PAD + clubs.length * ROW_SPACING + 40;
   svg.setAttribute("viewBox", `0 0 ${VIEW_W} ${totalHeight}`);
 
   for (let y = 1890; y <= 2020; y += 10) {
     if (!showPeriods) break;
     const x = xScale(y);
     svg.appendChild(el("line", {
-      x1: x, y1: TOP_PAD - 15, x2: x, y2: TOP_PAD + clubs.length * ROW_SPACING + 10,
+      x1: x, y1: TOP_PAD - 15, x2: x, y2: TOP_PAD + clubs.length * ROW_SPACING + 5,
       stroke: "#989181", "stroke-width": 1, opacity: 0.5
     }));
     svg.appendChild(el("text", {
@@ -316,7 +321,7 @@ function render(svg, clubs) {
 
   const xNow = xScale(CURRENT_YEAR);
   svg.appendChild(el("line", {
-    x1: xNow, y1: TOP_PAD - 15, x2: xNow, y2: TOP_PAD + clubs.length * ROW_SPACING + 10,
+    x1: xNow, y1: TOP_PAD - 15, x2: xNow, y2: TOP_PAD + clubs.length * ROW_SPACING + 5,
     stroke: "#989181", "stroke-width": 1, "stroke-dasharray": "3 4", opacity: 0.8
   }));
 
@@ -329,7 +334,7 @@ function render(svg, clubs) {
         x: 0,
         y: cy,
         "dominant-baseline": "central",
-        "font-size": "18", /* FONTE DOS CLUBES EM 18PX */
+        "font-size": "15", /* TAMANHO PROPORCIONAL AO NOVO ESPAÇAMENTO COMPACTO */
         "font-weight": "400",
         "letter-spacing": "0.08em",
         "fill": "#989181",
