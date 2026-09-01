@@ -91,8 +91,8 @@ function yCenter(i) {
   return TOP_PAD + i * ROW_SPACING + ROW_H / 2;
 }
 
-function widthFor(yearsSinceStart) {
-  return Math.min(MAX_W, Math.max(MIN_W, MIN_W + GROWTH * yearsSinceStart));
+function widthFor(years) {
+  return Math.min(MAX_W, Math.max(MIN_W, MIN_W + GROWTH * years));
 }
 
 function periodColor(hue, sat, idx, total) {
@@ -101,10 +101,24 @@ function periodColor(hue, sat, idx, total) {
   return sat === 0 ? `hsl(0,0%,${l}%)` : `hsl(${hue},${sat}%,${l}%)`;
 }
 
+// ---------------------------------------------------------------
+// LÓGICA DE ACUMULAÇÃO POR ID (memória de espessura)
+// ---------------------------------------------------------------
 function buildSegments(periods) {
+  // Mapa para guardar o total de anos já acumulados para cada ID
+  const priorAccum = new Map();
+  
   return periods.map((p, idx) => {
     const end = p.end === null ? CURRENT_YEAR : p.end;
-    return { ...p, end, idx };
+    const duration = end - p.start;
+    
+    // Recupera o acumulado anterior para este ID (ou 0 se for a primeira vez)
+    const startAccum = priorAccum.get(p.id) || 0;
+    
+    // Atualiza o acumulado para a próxima vez que este ID aparecer
+    priorAccum.set(p.id, startAccum + duration);
+    
+    return { ...p, end, startAccum, idx };
   });
 }
 
@@ -113,8 +127,9 @@ function ribbonPolygonPoints(seg, cy) {
   const top = [], bottom = [];
   for (let i = 0; i <= steps; i++) {
     const t = seg.start + (seg.end - seg.start) * (i / steps);
-    const yearsSinceStart = t - seg.start;
-    const w = widthFor(yearsSinceStart) / 2;
+    // Tempo total acumulado = acumulado anterior + tempo decorrido neste período
+    const totalYears = seg.startAccum + (t - seg.start);
+    const w = widthFor(totalYears) / 2;
     const x = xScale(t);
     top.push(`${x},${cy - w}`);
     bottom.push(`${x},${cy + w}`);
@@ -216,14 +231,13 @@ function render(clubs) {
       }));
     }
 
-    // period ribbons (SEM as bolinhas no início)
+    // period ribbons (sem bolinhas)
     segments.forEach(seg => {
       const color = periodColor(club.hue, club.sat, seg.idx, segments.length);
       svg.appendChild(el("polygon", {
         points: ribbonPolygonPoints(seg, cy),
         fill: color
       }));
-      // BOLINHA REMOVIDA: já não desenhamos mais o círculo
     });
   });
 
