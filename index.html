@@ -25,15 +25,16 @@
     height:100svh;
     display:flex;
     flex-direction:column;
+    justify-content:space-between;
     width:100%;
-    padding:20px;
+    padding:40px; /* BORDAS DA TELA AMPLIADAS */
   }
   
   .chart-area{
     flex:1;
     display:flex;
     justify-content:center;
-    align-items:center; /* CENTRALIZA OS GRÁFICOS VERTICALMENTE */
+    align-items:center;
     width:100%;
     min-height:0;
     overflow-y:auto;
@@ -41,10 +42,10 @@
 
   .charts-row{
     display:flex;
-    gap:24px;
+    gap:80px; /* ESPAÇO ENTRE OS GRÁFICOS AMPLIADO */
     width:100%;
     max-width:1400px;
-    align-items:center; /* CENTRALIZA AS COLUNAS DENTRO DA LINHA */
+    align-items:center;
     justify-content:center;
   }
 
@@ -53,19 +54,18 @@
     min-width:0;
     display:flex;
     flex-direction:column;
-    align-items:center;
+    align-items:flex-start;
     justify-content:center;
   }
 
-  /* TÍTULOS DOS PAÍSES EM ARCHIVO NARROW BOLD */
   .chart-title{
-    font-family:'Archivo Narrow', sans-serif;
-    font-weight:700;
-    font-size:22px;
+    font-family:'Archivo Narrow', sans-serif !important;
+    font-weight:700 !important;
+    font-size:28px;
     color:var(--ink);
     width:100%;
     text-align:left;
-    margin-bottom:10px;
+    margin-bottom:16px;
     flex-shrink:0;
   }
 
@@ -85,7 +85,7 @@
     display:flex;
     justify-content:center;
     gap:48px;
-    padding-top:16px;
+    padding-top:20px;
     padding-bottom:8px;
     border-top:1px solid rgba(152, 145, 129, 0.2);
     font-family:'Archivo Narrow', sans-serif;
@@ -226,9 +226,9 @@ let showPeriods = true;
 let selectedCountries = new Set(["Argentina", "Brasil", "Inglaterra"]);
 
 const VIEW_W = 1000, VIEW_H = 545;
-const RIGHT_PAD = 30;
+const RIGHT_PAD = 40; /* RESPIRO NA DIREITA DO SVG */
 
-const EXPANDED_LABEL_COL_W = 190, COLLAPSED_LABEL_COL_W = 20;
+const EXPANDED_LABEL_COL_W = 210, COLLAPSED_LABEL_COL_W = 20; /* MARGEM EXPANDIDA PARA ACOMODAR A FONTE DE 18PX */
 let LABEL_COL_W = EXPANDED_LABEL_COL_W;
 let NAME_OPACITY = 1;
 const TOP_PAD = 50;
@@ -329,7 +329,7 @@ function render(svg, clubs) {
         x: 0,
         y: cy,
         "dominant-baseline": "central",
-        "font-size": "13",
+        "font-size": "18", /* FONTE DOS CLUBES EM 18PX */
         "font-weight": "400",
         "letter-spacing": "0.08em",
         "fill": "#989181",
