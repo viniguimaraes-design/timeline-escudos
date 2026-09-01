@@ -24,9 +24,6 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <script>
-// ---------------------------------------------------------------
-// DADOS PADRÃO (usados se o CSV não carregar)
-// ---------------------------------------------------------------
 const CURRENT_YEAR = 2026;
 
 const DEFAULT_ROWS = [
@@ -63,9 +60,6 @@ function groupRowsIntoClubs(rows) {
 
 let CLUBS = groupRowsIntoClubs(DEFAULT_ROWS);
 
-// ---------------------------------------------------------------
-// Layout
-// ---------------------------------------------------------------
 const VIEW_W = 1000, VIEW_H = 545;
 const LABEL_COL_W = 280, RIGHT_PAD = 30, NAME_X = 0;
 const CHART_W = VIEW_W - LABEL_COL_W - RIGHT_PAD;
@@ -77,13 +71,11 @@ function xScale(year) {
   return LABEL_COL_W + ((year - MIN_YEAR) / (MAX_YEAR - MIN_YEAR)) * CHART_W;
 }
 
-// Cálculo da espessura máxima: de 1900 até CURRENT_YEAR
 function maxWidth() {
   const years = CURRENT_YEAR - 1900;
   return Math.min(MAX_W, Math.max(MIN_W, MIN_W + GROWTH * years));
 }
 
-// Distância entre linhas = largura máxima
 const ROW_SPACING = maxWidth();
 const ROW_H = ROW_SPACING;
 
@@ -102,20 +94,16 @@ function periodColor(hue, sat, idx, total) {
 }
 
 // ---------------------------------------------------------------
-// LÓGICA DE ACUMULAÇÃO POR ID (memória de espessura)
+// LÓGICA DE ACUMULAÇÃO POR ID (dentro de cada clube)
 // ---------------------------------------------------------------
 function buildSegments(periods) {
-  // Mapa para guardar o total de anos já acumulados para cada ID
-  const priorAccum = new Map();
-  
+  const priorAccum = new Map(); // cada clube tem o seu
+
   return periods.map((p, idx) => {
     const end = p.end === null ? CURRENT_YEAR : p.end;
     const duration = end - p.start;
     
-    // Recupera o acumulado anterior para este ID (ou 0 se for a primeira vez)
     const startAccum = priorAccum.get(p.id) || 0;
-    
-    // Atualiza o acumulado para a próxima vez que este ID aparecer
     priorAccum.set(p.id, startAccum + duration);
     
     return { ...p, end, startAccum, idx };
@@ -127,7 +115,6 @@ function ribbonPolygonPoints(seg, cy) {
   const top = [], bottom = [];
   for (let i = 0; i <= steps; i++) {
     const t = seg.start + (seg.end - seg.start) * (i / steps);
-    // Tempo total acumulado = acumulado anterior + tempo decorrido neste período
     const totalYears = seg.startAccum + (t - seg.start);
     const w = widthFor(totalYears) / 2;
     const x = xScale(t);
@@ -138,7 +125,7 @@ function ribbonPolygonPoints(seg, cy) {
 }
 
 // ---------------------------------------------------------------
-// Quebra de linha automática estilo editor de texto
+// Quebra de linha automática
 // ---------------------------------------------------------------
 function wrapText(text, maxWidth, fontSize, fontFamily) {
   const canvas = document.createElement('canvas');
@@ -183,7 +170,6 @@ function render(clubs) {
   const totalHeight = TOP_PAD + clubs.length * ROW_SPACING + 55;
   svg.setAttribute("viewBox", `0 0 ${VIEW_W} ${totalHeight}`);
 
-  // decade gridlines
   for (let y = 1890; y <= 2020; y += 10) {
     const x = xScale(y);
     svg.appendChild(el("line", {
@@ -195,7 +181,6 @@ function render(clubs) {
     }, y));
   }
 
-  // "hoje" marker
   const xNow = xScale(CURRENT_YEAR);
   svg.appendChild(el("line", {
     x1: xNow, y1: TOP_PAD - 15, x2: xNow, y2: TOP_PAD + clubs.length * ROW_SPACING + 10,
@@ -206,9 +191,8 @@ function render(clubs) {
 
   clubs.forEach((club, i) => {
     const cy = yCenter(i);
-    const segments = buildSegments(club.periods);
+    const segments = buildSegments(club.periods); // cada clube tem seu próprio mapa de acumulação
 
-    // Quebra automática do nome
     const lines = wrapText(club.name, maxTextWidth, 14, 'Source Serif 4');
     const lineHeight = 18;
     const totalTextHeight = lines.length * lineHeight;
@@ -222,7 +206,6 @@ function render(clubs) {
       }, line));
     });
 
-    // founding line
     const firstStart = club.periods[0].start;
     if (firstStart > club.founded) {
       svg.appendChild(el("line", {
@@ -231,7 +214,6 @@ function render(clubs) {
       }));
     }
 
-    // period ribbons (sem bolinhas)
     segments.forEach(seg => {
       const color = periodColor(club.hue, club.sat, seg.idx, segments.length);
       svg.appendChild(el("polygon", {
@@ -241,7 +223,6 @@ function render(clubs) {
     });
   });
 
-  // x-axis baseline
   const axisY = TOP_PAD + clubs.length * ROW_SPACING + 35;
   svg.appendChild(el("line", {
     x1: LABEL_COL_W, y1: axisY, x2: VIEW_W - RIGHT_PAD, y2: axisY,
