@@ -17,21 +17,101 @@
     padding:20px;
   }
   svg{display:block;width:100%;height:auto;max-width:1040px;}
+  .controls{
+    width:100%;
+    max-width:1040px;
+    display:flex;
+    justify-content:flex-start;
+    margin-bottom:12px;
+  }
+  .toggle-btn{
+    font-family:'IBM Plex Sans', sans-serif;
+    font-size:13px;
+    font-weight:500;
+    color:#000000;
+    background:transparent;
+    border:1px solid #000000;
+    border-radius:6px;
+    padding:7px 14px;
+    cursor:pointer;
+  }
+  .toggle-btn:hover{background:#000000;color:#F1ECE1;}
+  .chart-title{
+    font-family:'Source Serif 4', Georgia, serif;
+    font-weight:600;
+    font-size:26px;
+    color:#000000;
+    width:100%;
+    max-width:1040px;
+    text-align:left;
+    margin-bottom:14px;
+  }
+  .legend-panel{
+    width:100%;
+    max-width:1040px;
+    display:flex;
+    gap:48px;
+    margin-top:16px;
+    font-family:'IBM Plex Sans', sans-serif;
+  }
+  .legend-group{display:flex;flex-direction:column;gap:8px;}
+  .legend-group-title{
+    font-size:11px;
+    font-weight:600;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color:#000000;
+  }
+  .legend-options{display:flex;gap:18px;flex-wrap:wrap;}
+  .legend-options label{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    font-size:13px;
+    color:#000000;
+    cursor:pointer;
+  }
+  .legend-options input[type="checkbox"]{
+    accent-color:#000000;
+    width:14px;
+    height:14px;
+    cursor:pointer;
+  }
 </style>
 </head>
 <body>
-<svg id="chart" viewBox="0 0 1000 545" xmlns="http://www.w3.org/2000/svg"></svg>
+<div style="display:flex;flex-direction:column;align-items:center;width:100%;">
+  <div class="chart-title">Brasil</div>
+  <svg id="chart" viewBox="0 0 1000 545" xmlns="http://www.w3.org/2000/svg"></svg>
+  <div class="legend-panel">
+    <div class="legend-group">
+      <span class="legend-group-title">Países</span>
+      <div class="legend-options">
+        <label><input type="checkbox" class="country-cb" value="Argentina" checked> Argentina</label>
+        <label><input type="checkbox" class="country-cb" value="Brasil" checked> Brasil</label>
+        <label><input type="checkbox" class="country-cb" value="Inglaterra" checked> Inglaterra</label>
+      </div>
+    </div>
+    <div class="legend-group">
+      <span class="legend-group-title">Legenda</span>
+      <div class="legend-options">
+        <label><input type="checkbox" id="cb-nomes" checked> Nomes</label>
+        <label><input type="checkbox" id="cb-periodo" checked> Período</label>
+      </div>
+    </div>
+  </div>
+</div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <script>
 const CURRENT_YEAR = 2026;
 
 const DEFAULT_ROWS = [
-  { clube: "Club de Regatas Vasco da Gama", fundacao: 1898, hue: 345, sat: 55, id: "vasco-1899", label: "1º escudo (1899)", start: 1899, end: 1920 },
-  { clube: "Club de Regatas Vasco da Gama", fundacao: 1898, hue: 345, sat: 55, id: "vasco-1920", label: "2º escudo (1920–atual)", start: 1920, end: null },
-  { clube: "Clube Atlético Mineiro", fundacao: 1908, hue: 0, sat: 0, id: "cam-1910", label: "1º escudo (1910)", start: 1910, end: 1920 },
-  { clube: "Clube Atlético Mineiro", fundacao: 1908, hue: 0, sat: 0, id: "cam-1920", label: "2º escudo (1920–atual)", start: 1920, end: null },
-  { clube: "São Paulo Futebol Clube", fundacao: 1930, hue: 355, sat: 70, id: "spfc-1930", label: "Escudo único (1930–atual)", start: 1930, end: null },
+  { clube: "Club de Regatas Vasco da Gama", pais: "Brasil", fundacao: 1898, hue: 345, sat: 55, id: "vasco-1899", label: "1º escudo (1899)", start: 1899, end: 1920 },
+  { clube: "Club de Regatas Vasco da Gama", pais: "Brasil", fundacao: 1898, hue: 345, sat: 55, id: "vasco-1920", label: "2º escudo (1920–atual)", start: 1920, end: null },
+  { clube: "Clube Atlético Mineiro", pais: "Brasil", fundacao: 1908, hue: 0, sat: 0, id: "cam-1910", label: "1º escudo (1910)", start: 1910, end: 1920 },
+  { clube: "Clube Atlético Mineiro", pais: "Brasil", fundacao: 1908, hue: 0, sat: 0, id: "cam-1920", label: "2º escudo (1920–atual)", start: 1920, end: null },
+  { clube: "São Paulo Futebol Clube", pais: "Brasil", fundacao: 1930, hue: 355, sat: 70, id: "spfc-1930", label: "Escudo único (1930–atual)", start: 1930, end: null },
 ];
 
 function groupRowsIntoClubs(rows) {
@@ -41,6 +121,7 @@ function groupRowsIntoClubs(rows) {
     if (!byClub.has(r.clube)) {
       byClub.set(r.clube, {
         name: r.clube,
+        country: r.pais || "Brasil",
         founded: Number(r.fundacao),
         hue: Number(r.hue) || 0,
         sat: Number(r.sat) || 0,
@@ -59,16 +140,26 @@ function groupRowsIntoClubs(rows) {
 }
 
 let CLUBS = groupRowsIntoClubs(DEFAULT_ROWS);
+let showNames = true;
+let showPeriods = false;
+let selectedCountries = new Set(["Argentina", "Brasil", "Inglaterra"]);
+
+function getVisibleClubs() {
+  return CLUBS.filter(c => selectedCountries.has(c.country));
+}
 
 const VIEW_W = 1000, VIEW_H = 545;
-const LABEL_COL_W = 280, RIGHT_PAD = 30, NAME_X = 0;
-const CHART_W = VIEW_W - LABEL_COL_W - RIGHT_PAD;
+const RIGHT_PAD = 30, NAME_X = 0;
+const EXPANDED_LABEL_COL_W = 280, COLLAPSED_LABEL_COL_W = 40;
+let LABEL_COL_W = EXPANDED_LABEL_COL_W;
+let NAME_OPACITY = 1;
 const TOP_PAD = 50;
 const MIN_YEAR = 1890, MAX_YEAR = 2028;
 const MIN_W = 1.5, MAX_W = 60, GROWTH = 0.5;
 
 function xScale(year) {
-  return LABEL_COL_W + ((year - MIN_YEAR) / (MAX_YEAR - MIN_YEAR)) * CHART_W;
+  const chartW = VIEW_W - LABEL_COL_W - RIGHT_PAD;
+  return LABEL_COL_W + ((year - MIN_YEAR) / (MAX_YEAR - MIN_YEAR)) * chartW;
 }
 
 function maxWidth() {
@@ -169,6 +260,7 @@ function render(clubs) {
   svg.setAttribute("viewBox", `0 0 ${VIEW_W} ${totalHeight}`);
 
   for (let y = 1890; y <= 2020; y += 10) {
+    if (!showPeriods) break;
     const x = xScale(y);
     svg.appendChild(el("line", {
       x1: x, y1: TOP_PAD - 15, x2: x, y2: TOP_PAD + clubs.length * ROW_SPACING + 10,
@@ -185,7 +277,7 @@ function render(clubs) {
     stroke: "#000000", "stroke-width": 1, "stroke-dasharray": "3 4", opacity: 0.5
   }));
 
-  const maxTextWidth = LABEL_COL_W - 20;
+  const maxTextWidth = EXPANDED_LABEL_COL_W - 20;
 
   clubs.forEach((club, i) => {
     const cy = yCenter(i);
@@ -197,9 +289,11 @@ function render(clubs) {
     const startY = cy - (totalTextHeight / 2) + 5;
 
     lines.forEach((line, idx) => {
+      if (NAME_OPACITY <= 0.01) return;
       svg.appendChild(el("text", {
         x: NAME_X + 6, y: startY + idx * lineHeight,
         "font-size": "14", "font-weight": "600", fill: "#000000",
+        "fill-opacity": NAME_OPACITY,
         "font-family": "'Source Serif 4', Georgia, serif"
       }, line));
     });
@@ -229,6 +323,65 @@ function render(clubs) {
 }
 
 // ---------------------------------------------------------------
+// Checkbox: mostrar/ocultar nomes dos clubes (com transição suave)
+// ---------------------------------------------------------------
+const cbNomes = document.getElementById("cb-nomes");
+let animFrame = null;
+
+function animateToggle() {
+  const fromLabel = LABEL_COL_W;
+  const toLabel = showNames ? EXPANDED_LABEL_COL_W : COLLAPSED_LABEL_COL_W;
+  const fromOpacity = NAME_OPACITY;
+  const toOpacity = showNames ? 1 : 0;
+  const duration = 400;
+  const start = performance.now();
+
+  if (animFrame) cancelAnimationFrame(animFrame);
+
+  function tick(now) {
+    const t = Math.min(1, (now - start) / duration);
+    const eased = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2; // ease-in-out
+    LABEL_COL_W = fromLabel + (toLabel - fromLabel) * eased;
+    NAME_OPACITY = fromOpacity + (toOpacity - fromOpacity) * eased;
+    render(getVisibleClubs());
+    if (t < 1) {
+      animFrame = requestAnimationFrame(tick);
+    } else {
+      LABEL_COL_W = toLabel;
+      NAME_OPACITY = toOpacity;
+      render(getVisibleClubs());
+      animFrame = null;
+    }
+  }
+  animFrame = requestAnimationFrame(tick);
+}
+
+cbNomes.addEventListener("change", () => {
+  showNames = cbNomes.checked;
+  animateToggle();
+});
+
+// ---------------------------------------------------------------
+// Checkbox: mostrar/ocultar rótulo de período em cada mudança de escudo
+// ---------------------------------------------------------------
+const cbPeriodo = document.getElementById("cb-periodo");
+cbPeriodo.addEventListener("change", () => {
+  showPeriods = cbPeriodo.checked;
+  render(getVisibleClubs());
+});
+
+// ---------------------------------------------------------------
+// Checkboxes: filtro por país
+// ---------------------------------------------------------------
+document.querySelectorAll(".country-cb").forEach(cb => {
+  cb.addEventListener("change", () => {
+    if (cb.checked) selectedCountries.add(cb.value);
+    else selectedCountries.delete(cb.value);
+    render(getVisibleClubs());
+  });
+});
+
+// ---------------------------------------------------------------
 // Tenta carregar o CSV automaticamente
 // ---------------------------------------------------------------
 fetch('escudos-dados.csv')
@@ -241,6 +394,7 @@ fetch('escudos-dados.csv')
     if (result.data && result.data.length > 0) {
       const rows = result.data.map(r => ({
         clube: r["Clube"]?.trim(),
+        pais: r["País"]?.trim(),
         fundacao: r["Fundação"]?.trim(),
         hue: r["Matiz (0-360)"]?.trim(),
         sat: r["Saturação (%)"]?.trim(),
@@ -252,14 +406,14 @@ fetch('escudos-dados.csv')
       
       if (rows.length > 0) {
         CLUBS = groupRowsIntoClubs(rows);
-        render(CLUBS);
+        render(getVisibleClubs());
         console.log('✅ Dados carregados do CSV');
       }
     }
   })
   .catch(() => {
     console.log('📄 Usando dados padrão');
-    render(CLUBS);
+    render(getVisibleClubs());
   });
 </script>
 </body>
