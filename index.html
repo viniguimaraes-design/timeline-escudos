@@ -70,25 +70,15 @@
     flex-shrink:0;
   }
 
-  .chart-container {
-    display: flex;
-    width: 100%;
-    align-items: flex-start;
+  svg{
+    display:block;
+    width:100%;
+    height:auto;
+    max-height:calc(100% - 40px);
   }
 
-  /* LISTA DE NOMES EM HTML FIXO */
-  .club-names-list {
-    width: 160px;
-    flex-shrink: 0;
-    display: flex;
-    flex-direction: column;
-    margin-top: 50px; /* Alinha com o TOP_PAD do SVG */
-    transition: width 0.4s ease, opacity 0.4s ease;
-    overflow: hidden;
-  }
-
-  .club-name-item {
-    /* MESMO ESTILO DA LEGENDA DA BASE */
+  /* ESTILO CSS DOS NOMES (IGUAL AOS BOTOES) */
+  .club-name-label {
     font-family: 'Archivo Narrow', sans-serif;
     font-size: 12px;
     font-weight: 400;
@@ -98,16 +88,9 @@
     line-height: 1.1;
     display: flex;
     align-items: center;
-    padding-right: 12px;
+    height: 100%;
+    padding-right: 8px;
     word-break: break-word;
-  }
-
-  svg{
-    display:block;
-    flex: 1;
-    min-width: 0;
-    height:auto;
-    max-height:calc(100% - 40px);
   }
 
   .charts-row[data-count="1"] .chart-column{
@@ -190,12 +173,6 @@
     background:var(--paper);
     transform:translateY(-50%) translateX(13px);
   }
-
-  body.hide-names .club-names-list {
-    width: 0px !important;
-    opacity: 0;
-    padding: 0;
-  }
 </style>
 </head>
 <body>
@@ -265,17 +242,19 @@ let showNames = true;
 let showPeriods = true;
 let selectedCountries = new Set(["Argentina", "Brasil", "Inglaterra"]);
 
-const VIEW_W = 800;
+const VIEW_W = 1000, VIEW_H = 545;
 const RIGHT_PAD = 30;
-const LEFT_PAD = 10;
 
+const EXPANDED_LABEL_COL_W = 190, COLLAPSED_LABEL_COL_W = 20;
+let LABEL_COL_W = EXPANDED_LABEL_COL_W;
+let NAME_OPACITY = 1;
 const TOP_PAD = 50;
 const MIN_YEAR = 1890, MAX_YEAR = 2028;
 const MIN_W = 1.5, MAX_W = 60, GROWTH = 0.5;
 
 function xScale(year) {
-  const chartW = VIEW_W - LEFT_PAD - RIGHT_PAD;
-  return LEFT_PAD + ((year - MIN_YEAR) / (MAX_YEAR - MIN_YEAR)) * chartW;
+  const chartW = VIEW_W - LABEL_COL_W - RIGHT_PAD;
+  return LABEL_COL_W + ((year - MIN_YEAR) / (MAX_YEAR - MIN_YEAR)) * chartW;
 }
 
 function maxWidth() {
@@ -334,10 +313,8 @@ function el(tag, attrs, text) {
   return e;
 }
 
-function render(svg, namesListEl, clubs) {
+function render(svg, clubs) {
   svg.innerHTML = "";
-  namesListEl.innerHTML = "";
-
   const totalHeight = TOP_PAD + clubs.length * ROW_SPACING + 55;
   svg.setAttribute("viewBox", `0 0 ${VIEW_W} ${totalHeight}`);
 
@@ -364,12 +341,22 @@ function render(svg, namesListEl, clubs) {
     const cy = yCenter(i);
     const segments = buildSegments(club.periods);
 
-    // CRIAÇÃO DOS NOMES EM HTML FIXO
-    const nameItem = document.createElement("div");
-    nameItem.className = "club-name-item";
-    nameItem.style.height = `${ROW_SPACING}px`;
-    nameItem.textContent = club.name;
-    namesListEl.appendChild(nameItem);
+    // NOMES DOS CLUBES USANDO O MESMO ESTILO DA LEGENDA
+    if (NAME_OPACITY > 0.01) {
+      const foreign = document.createElementNS(NS, "foreignObject");
+      foreign.setAttribute("x", 0);
+      foreign.setAttribute("y", cy - (ROW_SPACING / 2));
+      foreign.setAttribute("width", EXPANDED_LABEL_COL_W - 10);
+      foreign.setAttribute("height", ROW_SPACING);
+      foreign.setAttribute("opacity", NAME_OPACITY);
+
+      const div = document.createElement("div");
+      div.className = "club-name-label";
+      div.textContent = club.name;
+
+      foreign.appendChild(div);
+      svg.appendChild(foreign);
+    }
 
     const firstStart = club.periods[0].start;
     if (firstStart > club.founded) {
@@ -411,34 +398,50 @@ function renderAll() {
     title.className = "chart-title";
     title.textContent = country;
 
-    const container = document.createElement("div");
-    container.className = "chart-container";
-
-    const namesList = document.createElement("div");
-    namesList.className = "club-names-list";
-
     const svgEl = document.createElementNS(NS, "svg");
 
-    container.appendChild(namesList);
-    container.appendChild(svgEl);
-
     column.appendChild(title);
-    column.appendChild(container);
+    column.appendChild(svgEl);
     chartsRow.appendChild(column);
 
-    render(svgEl, namesList, clubs);
+    render(svgEl, clubs);
   });
 }
 
 const cbNomes = document.getElementById("cb-nomes");
+let animFrame = null;
+
+function animateToggle() {
+  const fromLabel = LABEL_COL_W;
+  const toLabel = showNames ? EXPANDED_LABEL_COL_W : COLLAPSED_LABEL_COL_W;
+  const fromOpacity = NAME_OPACITY;
+  const toOpacity = showNames ? 1 : 0;
+  const duration = 400;
+  const start = performance.now();
+
+  if (animFrame) cancelAnimationFrame(animFrame);
+
+  function tick(now) {
+    const t = Math.min(1, (now - start) / duration);
+    const eased = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+    LABEL_COL_W = fromLabel + (toLabel - fromLabel) * eased;
+    NAME_OPACITY = fromOpacity + (toOpacity - fromOpacity) * eased;
+    renderAll();
+    if (t < 1) {
+      animFrame = requestAnimationFrame(tick);
+    } else {
+      LABEL_COL_W = toLabel;
+      NAME_OPACITY = toOpacity;
+      renderAll();
+      animFrame = null;
+    }
+  }
+  animFrame = requestAnimationFrame(tick);
+}
 
 cbNomes.addEventListener("change", () => {
   showNames = cbNomes.checked;
-  if(showNames) {
-    document.body.classList.remove("hide-names");
-  } else {
-    document.body.classList.add("hide-names");
-  }
+  animateToggle();
 });
 
 const cbPeriodo = document.getElementById("cb-periodo");
