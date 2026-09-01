@@ -15,7 +15,7 @@
   *{box-sizing:border-box;margin:0;padding:0;}
   html, body{
     height:100%;
-    overflow:hidden; /* Evita rolagem geral da página */
+    overflow:hidden;
     background:var(--paper);
   }
   .page{
@@ -27,18 +27,16 @@
     padding:20px;
   }
   
-  /* Área dos gráficos com rolagem interna se necessário */
   .chart-area{
     flex:1;
     display:flex;
     justify-content:center;
     align-items:center;
     width:100%;
-    min-height:0; /* Importante para flexbox não estourar */
+    min-height:0;
     overflow-y:auto;
   }
 
-  /* Container flex em linha que distribui as colunas */
   .charts-row{
     display:flex;
     gap:24px;
@@ -49,7 +47,6 @@
     align-items:stretch;
   }
 
-  /* Cada coluna ajusta seu tamanho dinamicamente */
   .chart-column{
     flex:1 1 0;
     min-width:0;
@@ -60,31 +57,29 @@
     height:100%;
   }
 
+  /* APENAS O NOME DO PAÍS PERMANECE PRETO */
   .chart-title{
     font-family:'Source Serif 4', Georgia, serif;
     font-weight:600;
     font-size:22px;
-    color:#000000;
+    color:var(--ink);
     width:100%;
     text-align:left;
     margin-bottom:10px;
     flex-shrink:0;
   }
 
-  /* Regras de limitação de tamanho do SVG por quantidade de colunas selecionadas */
   svg{
     display:block;
     width:100%;
     height:auto;
-    max-height:calc(100% - 40px); /* Garante que o SVG não estoure a altura disponível */
+    max-height:calc(100% - 40px);
   }
 
-  /* Quando houver apenas 1 coluna, limita a largura máxima para não exagerar no desktop */
   .charts-row[data-count="1"] .chart-column{
     max-width:650px;
   }
 
-  /* Painel de Legendas Fixo na parte inferior */
   .legend-panel{
     flex-shrink:0;
     display:flex;
@@ -92,7 +87,7 @@
     gap:48px;
     padding-top:16px;
     padding-bottom:8px;
-    border-top:1px solid rgba(0,0,0,0.08);
+    border-top:1px solid rgba(152, 145, 129, 0.2);
     font-family:'IBM Plex Sans', sans-serif;
     width:100%;
     background:var(--paper);
@@ -108,16 +103,17 @@
     color:var(--legend);
   }
   .legend-options{display:flex;flex-direction:row;gap:16px;}
+  
+  /* RÓTULOS NA BARRA AGORA USAM A COR BEGE ESCURO */
   .legend-options label{
     display:flex;
     align-items:center;
     gap:8px;
     font-size:13px;
-    color:#000000;
+    color:var(--legend);
     cursor:pointer;
   }
 
-  /* Switch Toggle */
   .switch{
     position:relative;
     display:inline-block;
@@ -256,6 +252,7 @@ function widthFor(years) {
   return Math.min(MAX_W, Math.max(MIN_W, MIN_W + GROWTH * years));
 }
 
+/* FAIXAS/POLÍGONOS CONTINUAM NA COR PRETA */
 function periodColor(hue, sat, idx, total) {
   return "#000000";
 }
@@ -327,22 +324,24 @@ function render(svg, clubs) {
   const totalHeight = TOP_PAD + clubs.length * ROW_SPACING + 55;
   svg.setAttribute("viewBox", `0 0 ${VIEW_W} ${totalHeight}`);
 
+  /* LINHAS VERTICAIS E ANOS AGORA EM BEGE ESCURO (#989181) */
   for (let y = 1890; y <= 2020; y += 10) {
     if (!showPeriods) break;
     const x = xScale(y);
     svg.appendChild(el("line", {
       x1: x, y1: TOP_PAD - 15, x2: x, y2: TOP_PAD + clubs.length * ROW_SPACING + 10,
-      stroke: "#D9D0BD", "stroke-width": 1
+      stroke: "#989181", "stroke-width": 1, opacity: 0.5
     }));
     svg.appendChild(el("text", {
-      x: x, y: TOP_PAD - 22, "text-anchor": "middle", fill: "#000000", "font-size": "11"
+      x: x, y: TOP_PAD - 22, "text-anchor": "middle", fill: "#989181", "font-size": "11"
     }, y));
   }
 
+  /* LINHA ATUAL (2026) EM BEGE ESCURO (#989181) */
   const xNow = xScale(CURRENT_YEAR);
   svg.appendChild(el("line", {
     x1: xNow, y1: TOP_PAD - 15, x2: xNow, y2: TOP_PAD + clubs.length * ROW_SPACING + 10,
-    stroke: "#000000", "stroke-width": 1, "stroke-dasharray": "3 4", opacity: 0.5
+    stroke: "#989181", "stroke-width": 1, "stroke-dasharray": "3 4", opacity: 0.8
   }));
 
   const maxTextWidth = EXPANDED_LABEL_COL_W - 20;
@@ -356,24 +355,27 @@ function render(svg, clubs) {
     const totalTextHeight = lines.length * lineHeight;
     const startY = cy - (totalTextHeight / 2) + 5;
 
+    /* NOMES DOS CLUBES EM BEGE ESCURO (#989181) */
     lines.forEach((line, idx) => {
       if (NAME_OPACITY <= 0.01) return;
       svg.appendChild(el("text", {
         x: NAME_X + 6, y: startY + idx * lineHeight,
-        "font-size": "14", "font-weight": "600", fill: "#000000",
+        "font-size": "14", "font-weight": "600", fill: "#989181",
         "fill-opacity": NAME_OPACITY,
         "font-family": "'Source Serif 4', Georgia, serif"
       }, line));
     });
 
+    /* LINHA DE FUNDAÇÃO EM BEGE ESCURO (#989181) */
     const firstStart = club.periods[0].start;
     if (firstStart > club.founded) {
       svg.appendChild(el("line", {
         x1: xScale(club.founded), y1: cy, x2: xScale(firstStart), y2: cy,
-        stroke: "#000000", "stroke-width": 0.75, "stroke-dasharray": "1 3", "stroke-linecap": "round", opacity: 0.6
+        stroke: "#989181", "stroke-width": 0.75, "stroke-dasharray": "1 3", "stroke-linecap": "round", opacity: 0.8
       }));
     }
 
+    /* POLÍGONOS DOS ESCUDOS EM PRETO (#000000) */
     segments.forEach(seg => {
       const color = periodColor(club.hue, club.sat, seg.idx, segments.length);
       svg.appendChild(el("polygon", {
@@ -394,7 +396,6 @@ function renderAll() {
     country => selectedCountries.has(country) && CLUBS.some(c => c.country === country)
   );
 
-  // Guarda no container a quantidade de colunas ativas para controlar a largura via CSS
   chartsRow.setAttribute("data-count", countriesToShow.length);
 
   countriesToShow.forEach(country => {
