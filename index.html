@@ -229,7 +229,6 @@ let selectedCountries = new Set(["Argentina", "Brasil", "Inglaterra"]);
 const VIEW_W = 1000, VIEW_H = 545;
 const RIGHT_PAD = 30;
 
-/* COLUNA REDUZIDA PARA APROXIMAR OS NOMES DAS FAIXAS */
 const EXPANDED_LABEL_COL_W = 190, COLLAPSED_LABEL_COL_W = 20;
 let LABEL_COL_W = EXPANDED_LABEL_COL_W;
 let NAME_OPACITY = 1;
@@ -354,14 +353,14 @@ function render(svg, clubs) {
     const cy = yCenter(i);
     const segments = buildSegments(club.periods);
 
-    /* FONTE EM 25px */
-    const fontSize = 25;
-    const lineHeight = 27;
-    const lines = wrapText(club.name, maxTextWidth, fontSize, 'Archivo Narrow');
+    /* ESTILO IDENTICO AO DA LEGENDA: 12px, UPPERCASE E LETTER-SPACING */
+    const fontSize = 12;
+    const lineHeight = 15;
+    const uppercaseName = club.name.toUpperCase();
+    const lines = wrapText(uppercaseName, maxTextWidth, fontSize, 'Archivo Narrow');
     const totalTextHeight = lines.length * lineHeight;
-    const startY = cy - (totalTextHeight / 2) + 8;
+    const startY = cy - (totalTextHeight / 2) + 4;
 
-    /* ALINHAMENTO À ESQUERDA (text-anchor: start) */
     const textX = 0;
 
     lines.forEach((line, idx) => {
@@ -369,7 +368,10 @@ function render(svg, clubs) {
       svg.appendChild(el("text", {
         x: textX, y: startY + idx * lineHeight,
         "text-anchor": "start",
-        "font-size": fontSize, "font-weight": "400", fill: "#989181",
+        "font-size": fontSize,
+        "font-weight": "400",
+        "letter-spacing": "0.08em",
+        fill: "#989181",
         "fill-opacity": NAME_OPACITY,
         "font-family": "'Archivo Narrow', sans-serif"
       }, line));
