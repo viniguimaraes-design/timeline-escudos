@@ -13,63 +13,92 @@
     --legend:#989181;
   }
   *{box-sizing:border-box;margin:0;padding:0;}
-  html, body{height:100%;}
-  body{
+  html, body{
+    height:100%;
+    overflow:hidden; /* Evita rolagem geral da página */
     background:var(--paper);
   }
   .page{
-    min-height:100vh;
-    min-height:100svh;
+    height:100vh;
+    height:100svh;
     display:flex;
     flex-direction:column;
-    align-items:center;
     width:100%;
-    padding:24px 20px;
+    padding:20px;
   }
+  
+  /* Área dos gráficos com rolagem interna se necessário */
   .chart-area{
     flex:1;
     display:flex;
-    flex-direction:column;
     justify-content:center;
     align-items:center;
     width:100%;
+    min-height:0; /* Importante para flexbox não estourar */
+    overflow-y:auto;
   }
-  svg{display:block;width:100%;height:auto;max-width:1040px;}
-  .controls{
-    width:100%;
-    max-width:1040px;
+
+  /* Container flex em linha que distribui as colunas */
+  .charts-row{
     display:flex;
+    gap:24px;
+    width:100%;
+    max-width:1400px;
+    height:100%;
+    justify-content:center;
+    align-items:stretch;
+  }
+
+  /* Cada coluna ajusta seu tamanho dinamicamente */
+  .chart-column{
+    flex:1 1 0;
+    min-width:0;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
     justify-content:flex-start;
-    margin-bottom:12px;
+    height:100%;
   }
-  .toggle-btn{
-    font-family:'IBM Plex Sans', sans-serif;
-    font-size:13px;
-    font-weight:500;
-    color:#000000;
-    background:transparent;
-    border:1px solid #000000;
-    border-radius:6px;
-    padding:7px 14px;
-    cursor:pointer;
-  }
-  .toggle-btn:hover{background:#000000;color:#F1ECE1;}
+
   .chart-title{
     font-family:'Source Serif 4', Georgia, serif;
     font-weight:600;
-    font-size:26px;
+    font-size:22px;
     color:#000000;
     width:100%;
-    max-width:1040px;
     text-align:left;
-    margin-bottom:14px;
+    margin-bottom:10px;
+    flex-shrink:0;
   }
+
+  /* Regras de limitação de tamanho do SVG por quantidade de colunas selecionadas */
+  svg{
+    display:block;
+    width:100%;
+    height:auto;
+    max-height:calc(100% - 40px); /* Garante que o SVG não estoure a altura disponível */
+  }
+
+  /* Quando houver apenas 1 coluna, limita a largura máxima para não exagerar no desktop */
+  .charts-row[data-count="1"] .chart-column{
+    max-width:650px;
+  }
+
+  /* Painel de Legendas Fixo na parte inferior */
   .legend-panel{
+    flex-shrink:0;
     display:flex;
+    justify-content:center;
     gap:48px;
-    padding-bottom:24px;
+    padding-top:16px;
+    padding-bottom:8px;
+    border-top:1px solid rgba(0,0,0,0.08);
     font-family:'IBM Plex Sans', sans-serif;
+    width:100%;
+    background:var(--paper);
+    z-index:10;
   }
+
   .legend-group{display:flex;flex-direction:column;gap:8px;}
   .legend-group-title{
     font-size:11px;
@@ -78,15 +107,17 @@
     text-transform:uppercase;
     color:var(--legend);
   }
-  .legend-options{display:flex;flex-direction:column;gap:12px;}
+  .legend-options{display:flex;flex-direction:row;gap:16px;}
   .legend-options label{
     display:flex;
     align-items:center;
-    gap:10px;
+    gap:8px;
     font-size:13px;
-    color:var(--legend);
+    color:#000000;
     cursor:pointer;
   }
+
+  /* Switch Toggle */
   .switch{
     position:relative;
     display:inline-block;
@@ -131,9 +162,9 @@
 <body>
 <div class="page">
   <div class="chart-area">
-    <div class="chart-title">Brasil</div>
-    <svg id="chart" viewBox="0 0 1000 545" xmlns="http://www.w3.org/2000/svg"></svg>
+    <div class="charts-row" id="chartsRow"></div>
   </div>
+  
   <div class="legend-panel">
     <div class="legend-group">
       <span class="legend-group-title">Países</span>
@@ -144,7 +175,7 @@
       </div>
     </div>
     <div class="legend-group">
-      <span class="legend-group-title">Legenda</span>
+      <span class="legend-group-title">Exibição</span>
       <div class="legend-options">
         <label><span class="switch"><input type="checkbox" id="cb-nomes" checked><span class="track"></span></span> Nomes</label>
         <label><span class="switch"><input type="checkbox" id="cb-periodo" checked><span class="track"></span></span> Período</label>
@@ -195,10 +226,6 @@ let showNames = true;
 let showPeriods = true;
 let selectedCountries = new Set(["Argentina", "Brasil", "Inglaterra"]);
 
-function getVisibleClubs() {
-  return CLUBS.filter(c => selectedCountries.has(c.country));
-}
-
 const VIEW_W = 1000, VIEW_H = 545;
 const RIGHT_PAD = 30, NAME_X = 0;
 const EXPANDED_LABEL_COL_W = 280, COLLAPSED_LABEL_COL_W = 40;
@@ -233,11 +260,8 @@ function periodColor(hue, sat, idx, total) {
   return "#000000";
 }
 
-// ---------------------------------------------------------------
-// LÓGICA DE ACUMULAÇÃO POR ID (dentro de cada clube)
-// ---------------------------------------------------------------
 function buildSegments(periods) {
-  const priorAccum = new Map(); // cada clube tem o seu
+  const priorAccum = new Map();
 
   return periods.map((p, idx) => {
     const end = p.end === null ? CURRENT_YEAR : p.end;
@@ -264,9 +288,6 @@ function ribbonPolygonPoints(seg, cy) {
   return top.concat(bottom.reverse()).join(" ");
 }
 
-// ---------------------------------------------------------------
-// Quebra de linha automática
-// ---------------------------------------------------------------
 function wrapText(text, maxWidth, fontSize, fontFamily) {
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
@@ -293,10 +314,6 @@ function wrapText(text, maxWidth, fontSize, fontFamily) {
   return lines;
 }
 
-// ---------------------------------------------------------------
-// Render
-// ---------------------------------------------------------------
-const svg = document.getElementById("chart");
 const NS = "http://www.w3.org/2000/svg";
 function el(tag, attrs, text) {
   const e = document.createElementNS(NS, tag);
@@ -305,7 +322,7 @@ function el(tag, attrs, text) {
   return e;
 }
 
-function render(clubs) {
+function render(svg, clubs) {
   svg.innerHTML = "";
   const totalHeight = TOP_PAD + clubs.length * ROW_SPACING + 55;
   svg.setAttribute("viewBox", `0 0 ${VIEW_W} ${totalHeight}`);
@@ -332,7 +349,7 @@ function render(clubs) {
 
   clubs.forEach((club, i) => {
     const cy = yCenter(i);
-    const segments = buildSegments(club.periods); // cada clube tem seu próprio mapa de acumulação
+    const segments = buildSegments(club.periods);
 
     const lines = wrapText(club.name, maxTextWidth, 14, 'Source Serif 4');
     const lineHeight = 18;
@@ -367,9 +384,39 @@ function render(clubs) {
   });
 }
 
-// ---------------------------------------------------------------
-// Checkbox: mostrar/ocultar nomes dos clubes (com transição suave)
-// ---------------------------------------------------------------
+const COUNTRY_ORDER = ["Argentina", "Brasil", "Inglaterra"];
+
+function renderAll() {
+  const chartsRow = document.getElementById("chartsRow");
+  chartsRow.innerHTML = "";
+
+  const countriesToShow = COUNTRY_ORDER.filter(
+    country => selectedCountries.has(country) && CLUBS.some(c => c.country === country)
+  );
+
+  // Guarda no container a quantidade de colunas ativas para controlar a largura via CSS
+  chartsRow.setAttribute("data-count", countriesToShow.length);
+
+  countriesToShow.forEach(country => {
+    const clubs = CLUBS.filter(c => c.country === country);
+
+    const column = document.createElement("div");
+    column.className = "chart-column";
+
+    const title = document.createElement("div");
+    title.className = "chart-title";
+    title.textContent = country;
+
+    const svgEl = document.createElementNS(NS, "svg");
+
+    column.appendChild(title);
+    column.appendChild(svgEl);
+    chartsRow.appendChild(column);
+
+    render(svgEl, clubs);
+  });
+}
+
 const cbNomes = document.getElementById("cb-nomes");
 let animFrame = null;
 
@@ -385,16 +432,16 @@ function animateToggle() {
 
   function tick(now) {
     const t = Math.min(1, (now - start) / duration);
-    const eased = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2; // ease-in-out
+    const eased = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
     LABEL_COL_W = fromLabel + (toLabel - fromLabel) * eased;
     NAME_OPACITY = fromOpacity + (toOpacity - fromOpacity) * eased;
-    render(getVisibleClubs());
+    renderAll();
     if (t < 1) {
       animFrame = requestAnimationFrame(tick);
     } else {
       LABEL_COL_W = toLabel;
       NAME_OPACITY = toOpacity;
-      render(getVisibleClubs());
+      renderAll();
       animFrame = null;
     }
   }
@@ -406,36 +453,27 @@ cbNomes.addEventListener("change", () => {
   animateToggle();
 });
 
-// ---------------------------------------------------------------
-// Checkbox: mostrar/ocultar rótulo de período em cada mudança de escudo
-// ---------------------------------------------------------------
 const cbPeriodo = document.getElementById("cb-periodo");
 cbPeriodo.addEventListener("change", () => {
   showPeriods = cbPeriodo.checked;
-  render(getVisibleClubs());
+  renderAll();
 });
 
-// ---------------------------------------------------------------
-// Checkboxes: filtro por país
-// ---------------------------------------------------------------
 document.querySelectorAll(".country-cb").forEach(cb => {
   cb.addEventListener("change", () => {
     if (cb.checked) selectedCountries.add(cb.value);
     else selectedCountries.delete(cb.value);
-    render(getVisibleClubs());
+    renderAll();
   });
 });
 
-// ---------------------------------------------------------------
-// Tenta carregar o CSV automaticamente
-// ---------------------------------------------------------------
 fetch('escudos-dados.csv')
   .then(res => {
     if (!res.ok) throw new Error('Arquivo não encontrado');
     return res.text();
   })
   .then(csv => {
-    const result = Papa.parse(csv, { header: true, skipEmptyLines: true, trimHeaders: false });
+    const result = Papa.parse(csv, { header: true, skipEmptyLines: true, trimHeaders: true });
     if (result.data && result.data.length > 0) {
       const rows = result.data.map(r => ({
         clube: r["Clube"]?.trim(),
@@ -451,14 +489,12 @@ fetch('escudos-dados.csv')
       
       if (rows.length > 0) {
         CLUBS = groupRowsIntoClubs(rows);
-        render(getVisibleClubs());
-        console.log('✅ Dados carregados do CSV');
+        renderAll();
       }
     }
   })
   .catch(() => {
-    console.log('📄 Usando dados padrão');
-    render(getVisibleClubs());
+    renderAll();
   });
 </script>
 </body>
