@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Evolução dos escudos</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Archivo+Narrow:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Narrow:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root{
     --paper:#F1ECE1;
@@ -33,7 +33,7 @@
     flex:1;
     display:flex;
     justify-content:center;
-    align-items:center;
+    align-items:center; /* CENTRALIZA OS GRÁFICOS VERTICALMENTE */
     width:100%;
     min-height:0;
     overflow-y:auto;
@@ -44,9 +44,8 @@
     gap:24px;
     width:100%;
     max-width:1400px;
-    height:100%;
+    align-items:center; /* CENTRALIZA AS COLUNAS DENTRO DA LINHA */
     justify-content:center;
-    align-items:stretch;
   }
 
   .chart-column{
@@ -55,13 +54,13 @@
     display:flex;
     flex-direction:column;
     align-items:center;
-    justify-content:flex-start;
-    height:100%;
+    justify-content:center;
   }
 
+  /* TÍTULOS DOS PAÍSES EM ARCHIVO NARROW BOLD */
   .chart-title{
-    font-family:'Source Serif 4', Georgia, serif;
-    font-weight:600;
+    font-family:'Archivo Narrow', sans-serif;
+    font-weight:700;
     font-size:22px;
     color:var(--ink);
     width:100%;
@@ -75,22 +74,6 @@
     width:100%;
     height:auto;
     max-height:calc(100% - 40px);
-  }
-
-  /* ESTILO CSS DOS NOMES (IGUAL AOS BOTOES) */
-  .club-name-label {
-    font-family: 'Archivo Narrow', sans-serif;
-    font-size: 12px;
-    font-weight: 400;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--legend);
-    line-height: 1.1;
-    display: flex;
-    align-items: center;
-    height: 100%;
-    padding-right: 8px;
-    word-break: break-word;
   }
 
   .charts-row[data-count="1"] .chart-column{
@@ -341,21 +324,18 @@ function render(svg, clubs) {
     const cy = yCenter(i);
     const segments = buildSegments(club.periods);
 
-    // NOMES DOS CLUBES USANDO O MESMO ESTILO DA LEGENDA
     if (NAME_OPACITY > 0.01) {
-      const foreign = document.createElementNS(NS, "foreignObject");
-      foreign.setAttribute("x", 0);
-      foreign.setAttribute("y", cy - (ROW_SPACING / 2));
-      foreign.setAttribute("width", EXPANDED_LABEL_COL_W - 10);
-      foreign.setAttribute("height", ROW_SPACING);
-      foreign.setAttribute("opacity", NAME_OPACITY);
-
-      const div = document.createElement("div");
-      div.className = "club-name-label";
-      div.textContent = club.name;
-
-      foreign.appendChild(div);
-      svg.appendChild(foreign);
+      svg.appendChild(el("text", {
+        x: 0,
+        y: cy,
+        "dominant-baseline": "central",
+        "font-size": "13",
+        "font-weight": "400",
+        "letter-spacing": "0.08em",
+        "fill": "#989181",
+        "fill-opacity": NAME_OPACITY,
+        "font-family": "'Archivo Narrow', sans-serif"
+      }, club.name.toUpperCase()));
     }
 
     const firstStart = club.periods[0].start;
