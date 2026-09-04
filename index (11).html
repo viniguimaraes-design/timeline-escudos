@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Evolução dos escudos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Narrow:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F1ECE1;
+    --ink:#000000;
+    --legend:#989181;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html, body{
+    height:100%;
+    background:var(--paper);
+    font-family:'Archivo Narrow', sans-serif;
+    font-weight:400;
+  }
+  .page{
+    min-height:100vh;
+    min-height:100svh;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    width:100%;
+    padding:24px 32px 148px;
+  }
+  
+  .chart-area{
+    flex:1;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    width:100%;
+    min-height:0;
+  }
+
+  .charts-row{
+    display:flex;
+    gap:60px;
+    width:100%;
+    max-width:1300px;
+    align-items:flex-start;
+    justify-content:center;
+    flex-wrap:wrap;
+  }
+
+  .chart-column{
+    flex:1 1 280px;
+    min-width:280px;
+    display:flex;
+    flex-direction:column;
+    align-items:flex-start;
+  }
+
+  .chart-title{
+    font-family:'Archivo Narrow', sans-serif !important;
+    font-weight:700 !important;
+    font-size:24px;
+    color:var(--ink);
+    width:100%;
+    text-align:left;
+    margin-bottom:8px;
+    flex-shrink:0;
+  }
+
+  svg{
+    display:block;
+    width:100%;
+    height:auto;
+  }
+
+  .charts-row[data-count="1"] .chart-column{
+    max-width:580px;
+  }
+
+  .legend-panel{
+    position:fixed;
+    left:0;
+    right:0;
+    bottom:0;
+    display:flex;
+    justify-content:center;
+    gap:48px;
+    padding-top:14px;
+    padding-bottom:14px;
+    border-top:1px solid rgba(152, 145, 129, 0.2);
+    font-family:'Archivo Narrow', sans-serif;
+    font-weight:400;
+    width:100%;
+    background:var(--paper);
+    z-index:10;
+  }
+
+  .legend-group{display:flex;flex-direction:column;gap:6px;}
+  .legend-group-title{
+    font-family:'Archivo Narrow', sans-serif;
+    font-size:12px;
+    font-weight:400;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color:var(--legend);
+  }
+  .legend-options{display:flex;flex-direction:row;gap:16px;}
+  
+  .legend-options label{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    font-family:'Archivo Narrow', sans-serif;
+    font-size:14px;
+    font-weight:400;
+    color:var(--legend);
+    cursor:pointer;
+  }
+
+  .switch{
+    position:relative;
+    display:inline-block;
+    width:30px;
+    height:17px;
+    flex-shrink:0;
+  }
+  .switch input{
+    opacity:0;
+    width:0;
+    height:0;
+  }
+  .switch .track{
+    position:absolute;
+    inset:0;
+    background:var(--paper);
+    border:2px solid var(--legend);
+    border-radius:999px;
+    transition:background .2s ease;
+  }
+  .switch .track::before{
+    content:"";
+    position:absolute;
+    top:50%;
+    left:2px;
+    width:9px;
+    height:9px;
+    background:var(--legend);
+    border-radius:50%;
+    transform:translateY(-50%);
+    transition:transform .2s ease, background .2s ease;
+  }
+  .switch input:checked + .track{
+    background:var(--legend);
+  }
+  .switch input:checked + .track::before{
+    background:var(--paper);
+    transform:translateY(-50%) translateX(13px);
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="chart-area">
+    <div class="charts-row" id="chartsRow"></div>
+  </div>
+  
+  <div class="legend-panel">
+    <div class="legend-group">
+      <span class="legend-group-title">Países</span>
+      <div class="legend-options">
+        <label><span class="switch"><input type="checkbox" class="country-cb" value="Argentina" checked><span class="track"></span></span> Argentina</label>
+        <label><span class="switch"><input type="checkbox" class="country-cb" value="Brasil" checked><span class="track"></span></span> Brasil</label>
+        <label><span class="switch"><input type="checkbox" class="country-cb" value="Inglaterra" checked><span class="track"></span></span> Inglaterra</label>
+      </div>
+    </div>
+    <div class="legend-group">
+      <span class="legend-group-title">Exibição</span>
+      <div class="legend-options">
+        <label><span class="switch"><input type="checkbox" id="cb-nomes" checked><span class="track"></span></span> Nomes</label>
+        <label><span class="switch"><input type="checkbox" id="cb-periodo" checked><span class="track"></span></span> Cronologia</label>
+        <label><span class="switch"><input type="checkbox" id="cb-atual"><span class="track"></span></span> Atual</label>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script>
+const CURRENT_YEAR = 2026;
+
+const DEFAULT_ROWS = [
+  { clube: "Club de Regatas Vasco da Gama", pais: "Brasil", fundacao: 1898, hue: 345, sat: 55, id: "vasco-1899", label: "1º escudo (1899)", start: 1899, end: 1920 },
+  { clube: "Club de Regatas Vasco da Gama", pais: "Brasil", fundacao: 1898, hue: 345, sat: 55, id: "vasco-1920", label: "2º escudo (1920–atual)", start: 1920, end: null },
+  { clube: "Clube Atlético Mineiro", pais: "Brasil", fundacao: 1908, hue: 0, sat: 0, id: "cam-1910", label: "1º escudo (1910)", start: 1910, end: 1920 },
+  { clube: "Clube Atlético Mineiro", pais: "Brasil", fundacao: 1908, hue: 0, sat: 0, id: "cam-1920", label: "2º escudo (1920–atual)", start: 1920, end: null },
+  { clube: "São Paulo Futebol Clube", pais: "Brasil", fundacao: 1930, hue: 355, sat: 70, id: "spfc-1930", label: "Escudo único (1930–atual)", start: 1930, end: null },
+];
+
+function groupRowsIntoClubs(rows) {
+  const byClub = new Map();
+  rows.forEach(r => {
+    if (!r.clube || !r.start) return;
+    if (!byClub.has(r.clube)) {
+      byClub.set(r.clube, {
+        name: r.clube,
+        country: r.pais || "Brasil",
+        founded: Number(r.fundacao),
+        hue: Number(r.hue) || 0,
+        sat: Number(r.sat) || 0,
+        periods: []
+      });
+    }
+    byClub.get(r.clube).periods.push({
+      id: r.id,
+      label: r.label,
+      start: Number(r.start),
+      end: (r.end === null || r.end === undefined || r.end === "") ? null : Number(r.end)
+    });
+  });
+  byClub.forEach(club => club.periods.sort((a, b) => a.start - b.start));
+  return Array.from(byClub.values());
+}
+
+let CLUBS = groupRowsIntoClubs(DEFAULT_ROWS);
+let showNames = true;
+let showPeriods = true;
+let showAtual = false;
+let selectedCountries = new Set(["Argentina", "Brasil", "Inglaterra"]);
+
+const VIEW_W = 1000;
+const RIGHT_PAD = 30;
+
+const EXPANDED_LABEL_COL_W = 190, COLLAPSED_LABEL_COL_W = 20;
+let LABEL_COL_W = EXPANDED_LABEL_COL_W;
+let NAME_OPACITY = 1;
+const TOP_PAD = 40;
+const MIN_YEAR = 1870, MAX_YEAR = 2028;
+
+/* REDUÇÃO NA ESPESSURA E NA ALTURA DAS LINHAS */
+const MIN_W = 1.5, MAX_W = 56;
+// Ritmo de crescimento definido pelos limites do gráfico: um escudo usado
+// desde o início da linha do tempo (MIN_YEAR) até hoje atingiria a espessura máxima.
+const GROWTH = (MAX_W - MIN_W) / (CURRENT_YEAR - MIN_YEAR);
+
+function xScale(year) {
+  const chartW = VIEW_W - LABEL_COL_W - RIGHT_PAD;
+  return LABEL_COL_W + ((year - MIN_YEAR) / (MAX_YEAR - MIN_YEAR)) * chartW;
+}
+
+function maxWidth() {
+  return MAX_W;
+}
+
+const ROW_SPACING = maxWidth();
+const ROW_H = ROW_SPACING;
+
+function yCenter(i) {
+  return TOP_PAD + i * ROW_SPACING + ROW_H / 2;
+}
+
+function widthFor(years) {
+  return Math.min(MAX_W, Math.max(MIN_W, MIN_W + GROWTH * years));
+}
+
+function periodColor(hue, sat, idx, total) {
+  return "#000000";
+}
+
+function buildSegments(periods) {
+  const priorAccum = new Map();
+
+  return periods.map((p, idx) => {
+    const end = p.end === null ? CURRENT_YEAR : p.end;
+    const duration = end - p.start;
+    
+    const startAccum = priorAccum.get(p.id) || 0;
+    priorAccum.set(p.id, startAccum + duration);
+    
+    return { ...p, end, startAccum, idx };
+  });
+}
+
+function ribbonPolygonPoints(seg, cy) {
+  const steps = Math.max(2, Math.ceil((seg.end - seg.start)));
+  const top = [], bottom = [];
+  for (let i = 0; i <= steps; i++) {
+    const t = seg.start + (seg.end - seg.start) * (i / steps);
+    const totalYears = seg.startAccum + (t - seg.start);
+    const w = widthFor(totalYears) / 2;
+    const x = xScale(t);
+    top.push(`${x},${cy - w}`);
+    bottom.push(`${x},${cy + w}`);
+  }
+  return top.concat(bottom.reverse()).join(" ");
+}
+
+const NS = "http://www.w3.org/2000/svg";
+function el(tag, attrs, text) {
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (text !== undefined) e.textContent = text;
+  return e;
+}
+
+function currentThickness(club) {
+  const segments = buildSegments(club.periods);
+  const last = segments[segments.length - 1];
+  const totalYears = last.startAccum + (CURRENT_YEAR - last.start);
+  return widthFor(totalYears);
+}
+
+const ATUAL_GAP = 15;
+const SOMA_GAP = 15;
+
+function render(svg, clubs) {
+  svg.innerHTML = "";
+  const totalHeight = TOP_PAD + clubs.length * ROW_SPACING + 40;
+  const svgWidth = showAtual ? VIEW_W + ATUAL_GAP + ROW_SPACING + SOMA_GAP + ROW_SPACING + 20 : VIEW_W;
+  svg.setAttribute("viewBox", `0 0 ${svgWidth} ${totalHeight}`);
+
+  for (let y = 1870; y <= 2020; y += 10) {
+    if (!showPeriods) break;
+    const x = xScale(y);
+    svg.appendChild(el("line", {
+      x1: x, y1: TOP_PAD - 15, x2: x, y2: TOP_PAD + clubs.length * ROW_SPACING + 5,
+      stroke: "#989181", "stroke-width": 1, opacity: 0.5
+    }));
+    if ((y - 1870) % 20 === 0) {
+      svg.appendChild(el("text", {
+        x: x, y: TOP_PAD - 22, "text-anchor": "middle", fill: "#989181", "font-size": "18",
+        "letter-spacing": "0.08em",
+        "font-family": "'Archivo Narrow', sans-serif", "font-weight": "400"
+      }, y));
+    }
+  }
+
+  if (showPeriods) {
+    const xNow = xScale(CURRENT_YEAR);
+    svg.appendChild(el("line", {
+      x1: xNow, y1: TOP_PAD - 15, x2: xNow, y2: TOP_PAD + clubs.length * ROW_SPACING + 5,
+      stroke: "#989181", "stroke-width": 1, "stroke-dasharray": "3 4", opacity: 0.8
+    }));
+  }
+
+  clubs.forEach((club, i) => {
+    const cy = yCenter(i);
+    const segments = buildSegments(club.periods);
+
+    if (NAME_OPACITY > 0.01) {
+      svg.appendChild(el("text", {
+        x: 0,
+        y: cy,
+        "dominant-baseline": "central",
+        "font-size": "19",
+        "font-weight": "400",
+        "letter-spacing": "0.08em",
+        "fill": "#989181",
+        "fill-opacity": NAME_OPACITY,
+        "font-family": "'Archivo Narrow', sans-serif"
+      }, club.name.toUpperCase()));
+    }
+
+    const firstStart = club.periods[0].start;
+    if (firstStart > club.founded) {
+      svg.appendChild(el("line", {
+        x1: xScale(club.founded), y1: cy, x2: xScale(firstStart), y2: cy,
+        stroke: "#989181", "stroke-width": 0.75, "stroke-dasharray": "1 3", "stroke-linecap": "round", opacity: 0.8
+      }));
+    }
+
+    segments.forEach(seg => {
+      const color = periodColor(club.hue, club.sat, seg.idx, segments.length);
+      svg.appendChild(el("polygon", {
+        points: ribbonPolygonPoints(seg, cy),
+        fill: color
+      }));
+    });
+  });
+
+  if (showAtual) {
+    const boxX = VIEW_W + ATUAL_GAP;
+    const boxY = TOP_PAD;
+    const boxH = clubs.length * ROW_SPACING;
+    const boxBottom = boxY + boxH;
+
+    svg.appendChild(el("rect", {
+      x: boxX, y: boxY, width: ROW_SPACING, height: boxH,
+      fill: "none", stroke: "#989181", "stroke-width": 1.5
+    }));
+
+    clubs.forEach((club, i) => {
+      const cy = yCenter(i);
+      const thickness = currentThickness(club);
+      svg.appendChild(el("rect", {
+        x: boxX, y: cy - thickness / 2, width: ROW_SPACING, height: thickness,
+        fill: "#000000"
+      }));
+    });
+
+    // Segundo retângulo: soma acumulada das espessuras atuais, empilhadas de baixo pra cima
+    const box2X = boxX + ROW_SPACING + SOMA_GAP;
+    let runningY = boxBottom;
+    clubs.forEach((club, i) => {
+      const thickness = currentThickness(club);
+      const segTop = runningY - thickness;
+      svg.appendChild(el("rect", {
+        x: box2X, y: segTop, width: ROW_SPACING, height: thickness,
+        fill: "#000000"
+      }));
+      if (i > 0) {
+        svg.appendChild(el("line", {
+          x1: box2X, y1: runningY, x2: box2X + ROW_SPACING, y2: runningY,
+          stroke: "#989181", "stroke-width": 1
+        }));
+      }
+      runningY = segTop;
+    });
+    const sumThickness = boxBottom - runningY;
+    svg.appendChild(el("rect", {
+      x: box2X, y: runningY, width: ROW_SPACING, height: sumThickness,
+      fill: "none", stroke: "#989181", "stroke-width": 1.5
+    }));
+  }
+}
+
+const COUNTRY_ORDER = ["Argentina", "Brasil", "Inglaterra"];
+
+function renderAll() {
+  const chartsRow = document.getElementById("chartsRow");
+  chartsRow.innerHTML = "";
+
+  const countriesToShow = COUNTRY_ORDER.filter(
+    country => selectedCountries.has(country) && CLUBS.some(c => c.country === country)
+  );
+
+  chartsRow.setAttribute("data-count", countriesToShow.length);
+
+  countriesToShow.forEach(country => {
+    const clubs = CLUBS.filter(c => c.country === country);
+
+    const column = document.createElement("div");
+    column.className = "chart-column";
+
+    const title = document.createElement("div");
+    title.className = "chart-title";
+    title.textContent = country;
+
+    const svgEl = document.createElementNS(NS, "svg");
+
+    column.appendChild(title);
+    column.appendChild(svgEl);
+    chartsRow.appendChild(column);
+
+    render(svgEl, clubs);
+  });
+}
+
+const cbNomes = document.getElementById("cb-nomes");
+let animFrame = null;
+
+function animateToggle() {
+  const fromLabel = LABEL_COL_W;
+  const toLabel = showNames ? EXPANDED_LABEL_COL_W : COLLAPSED_LABEL_COL_W;
+  const fromOpacity = NAME_OPACITY;
+  const toOpacity = showNames ? 1 : 0;
+  const duration = 400;
+  const start = performance.now();
+
+  if (animFrame) cancelAnimationFrame(animFrame);
+
+  function tick(now) {
+    const t = Math.min(1, (now - start) / duration);
+    const eased = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+    LABEL_COL_W = fromLabel + (toLabel - fromLabel) * eased;
+    NAME_OPACITY = fromOpacity + (toOpacity - fromOpacity) * eased;
+    renderAll();
+    if (t < 1) {
+      animFrame = requestAnimationFrame(tick);
+    } else {
+      LABEL_COL_W = toLabel;
+      NAME_OPACITY = toOpacity;
+      renderAll();
+      animFrame = null;
+    }
+  }
+  animFrame = requestAnimationFrame(tick);
+}
+
+cbNomes.addEventListener("change", () => {
+  showNames = cbNomes.checked;
+  animateToggle();
+});
+
+const cbPeriodo = document.getElementById("cb-periodo");
+cbPeriodo.addEventListener("change", () => {
+  showPeriods = cbPeriodo.checked;
+  renderAll();
+});
+
+const cbAtual = document.getElementById("cb-atual");
+cbAtual.addEventListener("change", () => {
+  showAtual = cbAtual.checked;
+  renderAll();
+});
+
+document.querySelectorAll(".country-cb").forEach(cb => {
+  cb.addEventListener("change", () => {
+    if (cb.checked) selectedCountries.add(cb.value);
+    else selectedCountries.delete(cb.value);
+    renderAll();
+  });
+});
+
+fetch('escudos-dados.csv')
+  .then(res => {
+    if (!res.ok) throw new Error('Arquivo não encontrado');
+    return res.text();
+  })
+  .then(csv => {
+    const result = Papa.parse(csv, { header: true, skipEmptyLines: true, trimHeaders: true });
+    if (result.data && result.data.length > 0) {
+      const rows = result.data.map(r => ({
+        clube: r["Clube"]?.trim(),
+        pais: r["País"]?.trim(),
+        fundacao: r["Fundação"]?.trim(),
+        hue: r["Matiz (0-360)"]?.trim(),
+        sat: r["Saturação (%)"]?.trim(),
+        id: r["ID do desenho"]?.trim(),
+        label: r["Rótulo do desenho"]?.trim(),
+        start: r["Início"]?.trim(),
+        end: r["Fim (vazio = atual)"]?.trim()
+      })).filter(r => r.clube && r.start);
+      
+      if (rows.length > 0) {
+        CLUBS = groupRowsIntoClubs(rows);
+        renderAll();
+      }
+    }
+  })
+  .catch(() => {
+    renderAll();
+  });
+</script>
+</body>
+</html>
