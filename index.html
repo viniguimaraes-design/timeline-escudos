@@ -448,6 +448,19 @@ function render(svg, clubs) {
       x: box2X, y: boxY, width: ROW_SPACING, height: boxH,
       fill: "none", stroke: "#989181", "stroke-width": 1.5, opacity: op
     }));
+
+    // Linha-teto: onde a soma chegaria se todos os clubes tivessem um único
+    // desenho de escudo desde a fundação (referência justa entre países com
+    // clubes fundados em anos diferentes).
+    let maxPossibleSum = 0;
+    clubs.forEach(club => { maxPossibleSum += widthFor(CURRENT_YEAR - club.founded); });
+    maxPossibleSum = Math.min(maxPossibleSum, boxH);
+    const ceilingY = boxBottom - maxPossibleSum;
+
+    svg.appendChild(el("line", {
+      x1: box2X, y1: ceilingY, x2: box2X + ROW_SPACING, y2: ceilingY,
+      stroke: "#989181", "stroke-width": 1.5, "stroke-dasharray": "4 3", opacity: op
+    }));
   }
 }
 
