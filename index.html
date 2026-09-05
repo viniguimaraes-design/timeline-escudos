@@ -63,7 +63,7 @@
     color:var(--ink);
     width:100%;
     text-align:center;
-    margin-bottom:8px;
+    margin-bottom:22px;
     flex-shrink:0;
   }
 
@@ -247,7 +247,8 @@ let ATUAL_PROGRESS = 0;
 let selectedCountries = new Set(["Argentina", "Brasil", "Inglaterra"]);
 
 const VIEW_W = 1000;
-const RIGHT_PAD = 30;
+const RIGHT_PAD_BASE = 30;
+let RIGHT_PAD = RIGHT_PAD_BASE;
 
 const EXPANDED_LABEL_COL_W = 190, COLLAPSED_LABEL_COL_W = 20;
 let LABEL_COL_W = EXPANDED_LABEL_COL_W;
@@ -272,6 +273,21 @@ function maxWidth() {
 
 const ROW_SPACING = maxWidth();
 const ROW_H = ROW_SPACING;
+
+const BOX_GAP = 15; // mesma distância: gráfico→1ª barra e 1ª barra→2ª barra
+const STRIP_W = 2 * BOX_GAP + 2 * ROW_SPACING;
+
+// Ponto onde "hoje" cairia se o Atual estivesse desligado (referência fixa,
+// não muda com a animação — é o alvo que a borda direita da 2ª barra deve alcançar).
+function nowXBase() {
+  const chartWBase = VIEW_W - LABEL_COL_W - RIGHT_PAD_BASE;
+  return LABEL_COL_W + ((CURRENT_YEAR - MIN_YEAR) / (MAX_YEAR - MIN_YEAR)) * chartWBase;
+}
+
+function updateRightPad() {
+  const targetRightPad = VIEW_W - nowXBase() + STRIP_W;
+  RIGHT_PAD = RIGHT_PAD_BASE + ATUAL_PROGRESS * (targetRightPad - RIGHT_PAD_BASE);
+}
 
 function yCenter(i) {
   return TOP_PAD + i * ROW_SPACING + ROW_H / 2;
@@ -328,15 +344,13 @@ function currentThickness(club) {
   return widthFor(totalYears);
 }
 
-const ATUAL_GAP = 15;
-const SOMA_GAP = 15;
+
 
 function render(svg, clubs) {
   svg.innerHTML = "";
   const totalHeight = TOP_PAD + clubs.length * ROW_SPACING + 40;
-  const EXTRA_W = ATUAL_GAP + ROW_SPACING + SOMA_GAP + ROW_SPACING + 20;
-  const svgWidth = VIEW_W + ATUAL_PROGRESS * EXTRA_W;
-  svg.setAttribute("viewBox", `0 0 ${svgWidth} ${totalHeight}`);
+  updateRightPad();
+  svg.setAttribute("viewBox", `0 0 ${VIEW_W} ${totalHeight}`);
 
   for (let y = 1870; y <= 2020; y += 10) {
     if (!showPeriods) break;
@@ -384,11 +398,20 @@ function render(svg, clubs) {
   });
 
   if (ATUAL_PROGRESS > 0.01) {
-    const boxX = VIEW_W + ATUAL_GAP;
+    const box2Right = nowXBase();
+    const box2X = box2Right - ROW_SPACING;
+    const boxX = box2X - BOX_GAP - ROW_SPACING; // box1 (ATUAL)
     const boxY = TOP_PAD;
     const boxH = clubs.length * ROW_SPACING;
     const boxBottom = boxY + boxH;
     const op = ATUAL_PROGRESS;
+    const labelY = TOP_PAD - 22;
+
+    svg.appendChild(el("text", {
+      x: boxX + ROW_SPACING / 2, y: labelY, "text-anchor": "middle", fill: "#989181", "font-size": "18",
+      "letter-spacing": "0.08em", "font-family": "'Archivo Narrow', sans-serif", "font-weight": "400",
+      opacity: op
+    }, "ATUAL"));
 
     svg.appendChild(el("rect", {
       x: boxX, y: boxY, width: ROW_SPACING, height: boxH,
@@ -404,21 +427,25 @@ function render(svg, clubs) {
       }));
     });
 
-    // Segundo retângulo: soma acumulada das espessuras atuais, empilhadas de baixo pra cima
-    const box2X = boxX + ROW_SPACING + SOMA_GAP;
-    let runningY = boxBottom;
-    clubs.forEach((club, i) => {
-      const thickness = currentThickness(club);
-      const segTop = runningY - thickness;
-      svg.appendChild(el("rect", {
-        x: box2X, y: segTop, width: ROW_SPACING, height: thickness,
-        fill: "#000000", opacity: op
-      }));
-      runningY = segTop;
-    });
-    const sumThickness = boxBottom - runningY;
+    // Segundo retângulo: mesma moldura do primeiro (largura, altura e contorno idênticos);
+    // o preenchimento preto entra por dentro, de baixo pra cima, até a altura da soma.
+    let sumThickness = 0;
+    clubs.forEach(club => { sumThickness += currentThickness(club); });
+    sumThickness = Math.min(sumThickness, boxH);
+
+    svg.appendChild(el("text", {
+      x: box2X + ROW_SPACING / 2, y: labelY, "text-anchor": "middle", fill: "#989181", "font-size": "18",
+      "letter-spacing": "0.08em", "font-family": "'Archivo Narrow', sans-serif", "font-weight": "400",
+      opacity: op
+    }, "SOMA"));
+
     svg.appendChild(el("rect", {
-      x: box2X, y: runningY, width: ROW_SPACING, height: sumThickness,
+      x: box2X, y: boxBottom - sumThickness, width: ROW_SPACING, height: sumThickness,
+      fill: "#000000", opacity: op
+    }));
+
+    svg.appendChild(el("rect", {
+      x: box2X, y: boxY, width: ROW_SPACING, height: boxH,
       fill: "none", stroke: "#989181", "stroke-width": 1.5, opacity: op
     }));
   }
