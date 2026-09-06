@@ -132,7 +132,7 @@
   .legend-options{
     display:grid;
     grid-template-columns:repeat(3, minmax(0,1fr));
-    gap:28px;
+    gap:18px;
   }
   
   .legend-options label{
@@ -164,11 +164,6 @@
     .legend-options{
       width:100%;
       gap:18px;
-    }
-    .download-btn{
-      margin-left:0;
-      margin-top:6px;
-      align-self:center;
     }
     .page{
       padding-bottom:190px;
@@ -219,7 +214,6 @@
     border:none;
     background:none;
     padding:0;
-    margin-left:56px;
     cursor:pointer;
     display:inline-flex;
     align-items:center;
@@ -267,16 +261,19 @@
         <label><span class="switch"><input type="checkbox" id="cb-atual"><span class="track"></span></span> Atual</label>
       </div>
     </div>
-    <button id="btn-download" class="download-btn" type="button" title="Baixar imagem (PNG)" aria-label="Baixar imagem PNG">
-      <span class="switch-track">
-        <svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="#F1ECE1" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M12 3v12"/>
-          <path d="M7 10l5 5 5-5"/>
-          <path d="M4 20h16"/>
-        </svg>
-      </span>
-      Salvar
-    </button>
+    <div class="legend-group">
+      <span class="legend-group-title" style="visibility:hidden;">Salvar</span>
+      <button id="btn-download" class="download-btn" type="button" title="Baixar imagem (PNG)" aria-label="Baixar imagem PNG">
+        <span class="switch-track">
+          <svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="#F1ECE1" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 3v12"/>
+            <path d="M7 10l5 5 5-5"/>
+            <path d="M4 20h16"/>
+          </svg>
+        </span>
+        Salvar
+      </button>
+    </div>
   </div>
 </div>
 
