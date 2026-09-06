@@ -66,6 +66,12 @@
     margin-bottom:22px;
     flex-shrink:0;
   }
+  .empty-message{
+    font-family:'Archivo Narrow', sans-serif;
+    font-size:18px;
+    font-weight:400;
+    color:var(--legend);
+  }
 
   .chart-svg-wrap{
     position:relative;
@@ -101,6 +107,7 @@
     right:0;
     bottom:0;
     display:flex;
+    align-items:center;
     justify-content:center;
     gap:48px;
     padding-top:14px;
@@ -122,17 +129,23 @@
     text-transform:uppercase;
     color:var(--legend);
   }
-  .legend-options{display:flex;flex-direction:row;gap:16px;}
+  .legend-options{
+    display:grid;
+    grid-template-columns:repeat(3, minmax(0,1fr));
+    gap:28px;
+  }
   
   .legend-options label{
     display:flex;
     align-items:center;
+    justify-content:flex-start;
     gap:8px;
     font-family:'Archivo Narrow', sans-serif;
     font-size:14px;
     font-weight:400;
     color:var(--legend);
     cursor:pointer;
+    white-space:nowrap;
   }
 
   @media (max-width: 640px){
@@ -145,10 +158,17 @@
     }
     .legend-group{
       align-items:center;
+      width:100%;
+      max-width:320px;
     }
     .legend-options{
-      justify-content:center;
-      flex-wrap:wrap;
+      width:100%;
+      gap:18px;
+    }
+    .download-btn{
+      margin-left:0;
+      margin-top:6px;
+      align-self:center;
     }
     .page{
       padding-bottom:190px;
@@ -194,6 +214,34 @@
     background:var(--paper);
     transform:translateY(-50%) translateX(13px);
   }
+
+  .download-btn{
+    border:none;
+    background:none;
+    padding:0;
+    margin-left:56px;
+    cursor:pointer;
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    font-family:'Archivo Narrow', sans-serif;
+    font-size:14px;
+    font-weight:400;
+    color:var(--legend);
+  }
+  .download-btn .switch-track{
+    position:relative;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    width:30px;
+    height:17px;
+    flex-shrink:0;
+    background:var(--legend);
+    border:2px solid var(--legend);
+    border-radius:999px;
+  }
+  .download-btn:hover .switch-track{ opacity:0.85; }
 </style>
 </head>
 <body>
@@ -212,13 +260,23 @@
       </div>
     </div>
     <div class="legend-group">
-      <span class="legend-group-title">Exibição</span>
+      <span class="legend-group-title">Visualizar</span>
       <div class="legend-options">
         <label><span class="switch"><input type="checkbox" id="cb-nomes" checked><span class="track"></span></span> Nomes</label>
         <label><span class="switch"><input type="checkbox" id="cb-periodo" checked><span class="track"></span></span> Cronologia</label>
         <label><span class="switch"><input type="checkbox" id="cb-atual"><span class="track"></span></span> Atual</label>
       </div>
     </div>
+    <button id="btn-download" class="download-btn" type="button" title="Baixar imagem (PNG)" aria-label="Baixar imagem PNG">
+      <span class="switch-track">
+        <svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="#F1ECE1" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 3v12"/>
+          <path d="M7 10l5 5 5-5"/>
+          <path d="M4 20h16"/>
+        </svg>
+      </span>
+      Salvar
+    </button>
   </div>
 </div>
 
@@ -396,7 +454,7 @@ function render(svg, clubs) {
     }));
     if ((y - 1870) % yearStep === 0) {
       svg.appendChild(el("text", {
-        x: x, y: TOP_PAD - 22, "text-anchor": "middle", fill: "#989181", "font-size": "18",
+        x: x, y: TOP_PAD - 22, "text-anchor": "middle", fill: "#989181", "font-size": "15",
         "letter-spacing": "0.08em",
         "font-family": "'Archivo Narrow', sans-serif", "font-weight": "400"
       }, y));
@@ -443,7 +501,7 @@ function render(svg, clubs) {
     const labelY = TOP_PAD - 22;
 
     svg.appendChild(el("text", {
-      x: boxX + ROW_SPACING / 2, y: labelY, "text-anchor": "middle", fill: "#989181", "font-size": "18",
+      x: boxX + ROW_SPACING / 2, y: labelY, "text-anchor": "middle", fill: "#989181", "font-size": "15",
       "letter-spacing": "0.08em", "font-family": "'Archivo Narrow', sans-serif", "font-weight": "400",
       opacity: op
     }, "ATUAL"));
@@ -469,7 +527,7 @@ function render(svg, clubs) {
     sumThickness = Math.min(sumThickness, boxH);
 
     svg.appendChild(el("text", {
-      x: box2X + ROW_SPACING / 2, y: labelY, "text-anchor": "middle", fill: "#989181", "font-size": "18",
+      x: box2X + ROW_SPACING / 2, y: labelY, "text-anchor": "middle", fill: "#989181", "font-size": "15",
       "letter-spacing": "0.08em", "font-family": "'Archivo Narrow', sans-serif", "font-weight": "400",
       opacity: op
     }, "SOMA"));
@@ -504,6 +562,14 @@ const COUNTRY_ORDER = ["Argentina", "Brasil", "Inglaterra"];
 function renderAll() {
   const chartsRow = document.getElementById("chartsRow");
   chartsRow.innerHTML = "";
+
+  if (selectedCountries.size === 0) {
+    const msg = document.createElement("div");
+    msg.className = "empty-message";
+    msg.textContent = "Selecione pelo menos um país.";
+    chartsRow.appendChild(msg);
+    return;
+  }
 
   const countriesToShow = COUNTRY_ORDER.filter(
     country => selectedCountries.has(country) && CLUBS.some(c => c.country === country)
@@ -629,6 +695,95 @@ document.querySelectorAll(".country-cb").forEach(cb => {
     renderAll();
   });
 });
+
+// ---------------------------------------------------------------
+// Download da imagem (PNG) na configuração atual
+// ---------------------------------------------------------------
+async function downloadChartPNG() {
+  const chartsRow = document.getElementById("chartsRow");
+  const rowRect = chartsRow.getBoundingClientRect();
+  if (rowRect.width === 0 || rowRect.height === 0) return;
+
+  const scale = 2;
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.ceil(rowRect.width * scale);
+  canvas.height = Math.ceil(rowRect.height * scale);
+  const ctx = canvas.getContext("2d");
+  ctx.scale(scale, scale);
+  ctx.fillStyle = "#F1ECE1";
+  ctx.fillRect(0, 0, rowRect.width, rowRect.height);
+
+  const columns = chartsRow.querySelectorAll(".chart-column");
+
+  for (const col of columns) {
+    const titleEl = col.querySelector(".chart-title");
+    if (titleEl) {
+      const tStyle = getComputedStyle(titleEl);
+      const tRect = titleEl.getBoundingClientRect();
+      ctx.fillStyle = tStyle.color;
+      ctx.font = `${tStyle.fontWeight} ${tStyle.fontSize} ${tStyle.fontFamily}`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(
+        titleEl.textContent,
+        (tRect.left - rowRect.left) + tRect.width / 2,
+        (tRect.top - rowRect.top) + tRect.height / 2
+      );
+    }
+
+    const svgEl = col.querySelector("svg");
+    if (svgEl) {
+      const svgRect = svgEl.getBoundingClientRect();
+      const svgString = new XMLSerializer().serializeToString(svgEl);
+      const svgBlob = new Blob([svgString], { type: "image/svg+xml;charset=utf-8" });
+      const url = URL.createObjectURL(svgBlob);
+      await new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          ctx.drawImage(
+            img,
+            svgRect.left - rowRect.left,
+            svgRect.top - rowRect.top,
+            svgRect.width,
+            svgRect.height
+          );
+          URL.revokeObjectURL(url);
+          resolve();
+        };
+        img.onerror = () => { URL.revokeObjectURL(url); resolve(); };
+        img.src = url;
+      });
+    }
+
+    col.querySelectorAll(".club-name-label").forEach(label => {
+      const lStyle = getComputedStyle(label);
+      const opacity = parseFloat(lStyle.opacity);
+      if (opacity <= 0.01) return;
+      const lRect = label.getBoundingClientRect();
+      ctx.globalAlpha = opacity;
+      ctx.fillStyle = lStyle.color;
+      ctx.font = `${lStyle.fontWeight} ${lStyle.fontSize} ${lStyle.fontFamily}`;
+      ctx.textAlign = "left";
+      ctx.textBaseline = "middle";
+      ctx.fillText(
+        label.textContent,
+        lRect.left - rowRect.left,
+        (lRect.top - rowRect.top) + lRect.height / 2
+      );
+      ctx.globalAlpha = 1;
+    });
+  }
+
+  canvas.toBlob(blob => {
+    const link = document.createElement("a");
+    link.download = "evolucao-escudos.png";
+    link.href = URL.createObjectURL(blob);
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(link.href), 2000);
+  });
+}
+
+document.getElementById("btn-download").addEventListener("click", downloadChartPNG);
 
 fetch('escudos-dados.csv')
   .then(res => {
