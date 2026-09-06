@@ -135,6 +135,26 @@
     cursor:pointer;
   }
 
+  @media (max-width: 640px){
+    .legend-panel{
+      flex-direction:column;
+      align-items:center;
+      gap:12px;
+      padding-top:12px;
+      padding-bottom:12px;
+    }
+    .legend-group{
+      align-items:center;
+    }
+    .legend-options{
+      justify-content:center;
+      flex-wrap:wrap;
+    }
+    .page{
+      padding-bottom:190px;
+    }
+  }
+
   .switch{
     position:relative;
     display:inline-block;
@@ -352,6 +372,21 @@ function render(svg, clubs) {
   updateRightPad();
   svg.setAttribute("viewBox", `0 0 ${VIEW_W} ${totalHeight}`);
 
+  // Escolhe de quantas em quantas décadas rotular os anos, com base na
+  // largura real renderizada — evita números amontoados quando o gráfico
+  // fica estreito (mobile, várias colunas, ou "Atual" comprimindo o eixo).
+  let yearStep = 20;
+  if (showPeriods) {
+    const renderedWidth = svg.getBoundingClientRect ? svg.getBoundingClientRect().width : 0;
+    if (renderedWidth > 0) {
+      const pxPerViewBoxUnit = renderedWidth / VIEW_W;
+      const decadeSpacingPx = (10 / (MAX_YEAR - MIN_YEAR)) * (VIEW_W - LABEL_COL_W - RIGHT_PAD) * pxPerViewBoxUnit;
+      const MIN_LABEL_SPACING_PX = 55;
+      const stepDecades = Math.max(1, Math.ceil(MIN_LABEL_SPACING_PX / decadeSpacingPx));
+      yearStep = stepDecades * 10;
+    }
+  }
+
   for (let y = 1870; y <= 2020; y += 10) {
     if (!showPeriods) break;
     const x = xScale(y);
@@ -359,7 +394,7 @@ function render(svg, clubs) {
       x1: x, y1: TOP_PAD - 15, x2: x, y2: TOP_PAD + clubs.length * ROW_SPACING + 5,
       stroke: "#989181", "stroke-width": 1, opacity: 0.5
     }));
-    if ((y - 1870) % 20 === 0) {
+    if ((y - 1870) % yearStep === 0) {
       svg.appendChild(el("text", {
         x: x, y: TOP_PAD - 22, "text-anchor": "middle", fill: "#989181", "font-size": "18",
         "letter-spacing": "0.08em",
