@@ -694,82 +694,117 @@ document.querySelectorAll(".country-cb").forEach(cb => {
 });
 
 // ---------------------------------------------------------------
-// Download da imagem (PNG) na configuração atual
+// Download da imagem (PNG): tamanho sempre fixo (16:9), gráficos
+// sempre montados lado a lado (independente do dispositivo),
+// escalados pra caber e centralizados.
 // ---------------------------------------------------------------
 async function downloadChartPNG() {
-  const chartsRow = document.getElementById("chartsRow");
-  const rowRect = chartsRow.getBoundingClientRect();
-  if (rowRect.width === 0 || rowRect.height === 0) return;
+  const EXPORT_W = 1600, EXPORT_H = 900;
+  const EXPORT_SCALE = 1.5; // nitidez extra
+  const MARGIN = 60; // respiro dentro do canvas 1600x900
+  const REF_COL_W = 500; // largura de referência por país, antes do ajuste final de escala
+  const REF_GAP = 40;
+  const REF_TITLE_H = 44;
 
-  const scale = 2;
+  const countriesToShow = COUNTRY_ORDER.filter(
+    country => selectedCountries.has(country) && CLUBS.some(c => c.country === country)
+  );
+  if (countriesToShow.length === 0) return;
+
+  // Monta cada país num SVG independente, numa área escondida do documento,
+  // usando a MESMA lógica de desenho (respeitando Nomes/Cronologia/Atual atuais).
+  const hiddenHost = document.createElement("div");
+  hiddenHost.style.position = "absolute";
+  hiddenHost.style.left = "-99999px";
+  hiddenHost.style.top = "0";
+  document.body.appendChild(hiddenHost);
+
+  const parts = countriesToShow.map(country => {
+    const clubs = CLUBS.filter(c => c.country === country);
+    const totalHeightBase = TOP_PAD + clubs.length * ROW_SPACING + 40;
+    const colH = REF_COL_W * (totalHeightBase / VIEW_W);
+
+    const svgEl = document.createElementNS(NS, "svg");
+    svgEl.style.width = REF_COL_W + "px";
+    svgEl.style.height = colH + "px";
+    svgEl.style.display = "block";
+    hiddenHost.appendChild(svgEl);
+    render(svgEl, clubs);
+
+    return { country, clubs, colW: REF_COL_W, colH, totalHeightBase, svgEl };
+  });
+
+  const stripW = parts.length * REF_COL_W + (parts.length - 1) * REF_GAP;
+  const stripH = REF_TITLE_H + Math.max(...parts.map(p => p.colH));
+
+  const usableW = EXPORT_W - 2 * MARGIN;
+  const usableH = EXPORT_H - 2 * MARGIN;
+  const fitScale = Math.min(usableW / stripW, usableH / stripH);
+
+  const drawW = stripW * fitScale;
+  const drawH = stripH * fitScale;
+  const originX = (EXPORT_W - drawW) / 2;
+  const originY = (EXPORT_H - drawH) / 2;
+
   const canvas = document.createElement("canvas");
-  canvas.width = Math.ceil(rowRect.width * scale);
-  canvas.height = Math.ceil(rowRect.height * scale);
+  canvas.width = Math.ceil(EXPORT_W * EXPORT_SCALE);
+  canvas.height = Math.ceil(EXPORT_H * EXPORT_SCALE);
   const ctx = canvas.getContext("2d");
-  ctx.scale(scale, scale);
+  ctx.scale(EXPORT_SCALE, EXPORT_SCALE);
   ctx.fillStyle = "#F1ECE1";
-  ctx.fillRect(0, 0, rowRect.width, rowRect.height);
+  ctx.fillRect(0, 0, EXPORT_W, EXPORT_H);
 
-  const columns = chartsRow.querySelectorAll(".chart-column");
+  let cursorX = originX;
+  for (const part of parts) {
+    const colDrawW = part.colW * fitScale;
+    const colDrawH = part.colH * fitScale;
+    const titleDrawH = REF_TITLE_H * fitScale;
 
-  for (const col of columns) {
-    const titleEl = col.querySelector(".chart-title");
-    if (titleEl) {
-      const tStyle = getComputedStyle(titleEl);
-      const tRect = titleEl.getBoundingClientRect();
-      ctx.fillStyle = tStyle.color;
-      ctx.font = `${tStyle.fontWeight} ${tStyle.fontSize} ${tStyle.fontFamily}`;
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText(
-        titleEl.textContent,
-        (tRect.left - rowRect.left) + tRect.width / 2,
-        (tRect.top - rowRect.top) + tRect.height / 2
-      );
-    }
+    // Título do país
+    ctx.fillStyle = "#000000";
+    ctx.font = `700 ${24 * fitScale}px 'Archivo Narrow', sans-serif`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(part.country, cursorX + colDrawW / 2, originY + titleDrawH / 2);
 
-    const svgEl = col.querySelector("svg");
-    if (svgEl) {
-      const svgRect = svgEl.getBoundingClientRect();
-      const svgString = new XMLSerializer().serializeToString(svgEl);
-      const svgBlob = new Blob([svgString], { type: "image/svg+xml;charset=utf-8" });
-      const url = URL.createObjectURL(svgBlob);
-      await new Promise((resolve) => {
-        const img = new Image();
-        img.onload = () => {
-          ctx.drawImage(
-            img,
-            svgRect.left - rowRect.left,
-            svgRect.top - rowRect.top,
-            svgRect.width,
-            svgRect.height
-          );
-          URL.revokeObjectURL(url);
-          resolve();
-        };
-        img.onerror = () => { URL.revokeObjectURL(url); resolve(); };
-        img.src = url;
-      });
-    }
+    // Gráfico (SVG rasterizado)
+    const svgString = new XMLSerializer().serializeToString(part.svgEl);
+    const svgBlob = new Blob([svgString], { type: "image/svg+xml;charset=utf-8" });
+    const url = URL.createObjectURL(svgBlob);
+    await new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        ctx.drawImage(img, cursorX, originY + titleDrawH, colDrawW, colDrawH);
+        URL.revokeObjectURL(url);
+        resolve();
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); resolve(); };
+      img.src = url;
+    });
 
-    col.querySelectorAll(".club-name-label").forEach(label => {
-      const lStyle = getComputedStyle(label);
-      const opacity = parseFloat(lStyle.opacity);
-      if (opacity <= 0.01) return;
-      const lRect = label.getBoundingClientRect();
-      ctx.globalAlpha = opacity;
-      ctx.fillStyle = lStyle.color;
-      ctx.font = `${lStyle.fontWeight} ${lStyle.fontSize} ${lStyle.fontFamily}`;
+    // Nomes dos clubes (camada que normalmente é HTML, redesenhada aqui)
+    if (NAME_OPACITY > 0.01) {
+      ctx.globalAlpha = NAME_OPACITY;
+      ctx.fillStyle = "#989181";
+      ctx.font = `400 ${19 * (part.colW / VIEW_W) * fitScale}px 'Archivo Narrow', sans-serif`;
       ctx.textAlign = "left";
       ctx.textBaseline = "middle";
-      ctx.fillText(
-        label.textContent,
-        lRect.left - rowRect.left,
-        (lRect.top - rowRect.top) + lRect.height / 2
-      );
+      part.clubs.forEach((club, i) => {
+        const cy = yCenter(i);
+        const yFrac = cy / part.totalHeightBase;
+        ctx.fillText(
+          club.name.toUpperCase(),
+          cursorX,
+          originY + titleDrawH + yFrac * colDrawH
+        );
+      });
       ctx.globalAlpha = 1;
-    });
+    }
+
+    cursorX += colDrawW + REF_GAP * fitScale;
   }
+
+  document.body.removeChild(hiddenHost);
 
   canvas.toBlob(blob => {
     const link = document.createElement("a");
