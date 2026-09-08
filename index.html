@@ -139,7 +139,7 @@
     display:flex;
     align-items:center;
     justify-content:flex-start;
-    gap:8px;
+    gap:4px;
     font-family:'Archivo Narrow', sans-serif;
     font-size:14px;
     font-weight:600;
@@ -255,10 +255,10 @@
     </div>
     <div class="legend-group">
       <span class="legend-group-title">Visualizar</span>
-      <div class="legend-options" style="grid-template-columns:repeat(4,minmax(0,1fr));">
+      <div class="legend-options" style="grid-template-columns:repeat(4,minmax(0,1fr)); gap:44px;">
         <label><span class="switch"><input type="checkbox" id="cb-nomes" checked><span class="track"></span></span> Nomes</label>
         <label><span class="switch"><input type="checkbox" id="cb-periodo" checked><span class="track"></span></span> Anos</label>
-        <label><span class="switch"><input type="checkbox" id="cb-fundacao" checked><span class="track"></span></span> Fundação</label>
+        <label><span class="switch"><input type="checkbox" id="cb-fundacao"><span class="track"></span></span> Fundação</label>
         <label><span class="switch"><input type="checkbox" id="cb-atual"><span class="track"></span></span> Atual</label>
       </div>
     </div>
@@ -319,7 +319,7 @@ let CLUBS = groupRowsIntoClubs(DEFAULT_ROWS);
 let showNames = true;
 let showPeriods = true;
 let showAtual = false;
-let showFundacao = true;
+let showFundacao = false;
 let ATUAL_PROGRESS = 0;
 let selectedCountries = new Set(["Argentina", "Brasil", "Inglaterra"]);
 
